@@ -1,0 +1,443 @@
+---
+title: "Predicting Residential Construction Year and Classifying Architectural Typology: A Machine Learning Study on the Ames Housing Dataset"
+subtitle: "Statistical Learning"
+type: "Term Paper"
+author: "Your Name"
+discipline: "Your Study Programme"
+date: "today"
+studid: "Your Matriculation Number"
+supervisor: "Prof. Dr. Christoph Hanck"
+secondsupervisor: "Prof. Dr. Andreas Behr"
+ssemester: "1"
+estdegree_emester: "Summer Term 2026"
+abstract: "This paper applies supervised machine learning to the Ames Housing Dataset to address two prediction tasks that are independent of market valuation. The first task is a regression problem: estimating a residential property's original construction year from its physical attributes and quality ratings. The second is a four-class classification problem: predicting a property's architectural typology from its spatial and structural measurements. Nine regression models and eight classification models were trained within a leakage-safe preprocessing pipeline and evaluated on a held-out test set. Ensemble tree-based methods achieved the strongest performance on both tasks: Random Forest attained an RMSE of 4.85 years and R\\textsuperscript{2} = 0.973 for regression, while XGBoost attained a macro-averaged F1 score of 0.833 and an accuracy of 91.5\\% for classification. The results demonstrate that physical design attributes encode a recoverable signal about both construction era and structural form, and that gradient-boosted ensemble methods are the most effective strategy for recovering it from tabular housing data."
+deadline: "July 17, 2026"
+output:
+  pdf_document:
+    keep_tex: yes
+    template: Resources/template.tex
+    fig_caption: yes
+    citation_package: biblatex
+    number_sections: true
+toc: true
+lot: true
+lof: true
+loa: false
+graphics: true
+biblio-title: References
+fontsize: 11pt
+geometry: lmargin=5cm,rmargin=2.5cm,tmargin=2.5cm,bmargin=2.5cm
+biblio-files: Resources/references.bib
+classoption: a4paper
+language: english
+linkcolor: black
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.align = "center", fig.pos = "htbp")
+```
+
+# Introduction
+
+The Ames Housing Dataset [@DeCock2011] documents 2,930 residential property sales in Ames, Iowa between 2006 and 2010 and contains 82 variables covering physical dimensions, material quality ratings, basement and garage attributes, and neighbourhood classification. While the dataset is most commonly applied to predicting sale price, this study redirects attention to the structural and architectural information embedded in the physical record of each property.
+
+Two prediction tasks motivate the analysis. The first is a regression problem: estimating the original year of construction from a property's physical attributes and quality ratings, without access to temporal metadata or market data. The hypothesis is that construction era leaves a measurable signature in material choices, room configurations, and the presence of amenities that changed systematically across the twentieth century. The second task is a four-class classification problem: predicting a property's architectural typology — whether it is single-story, multi-story, one-and-a-half story, or split-level — from its spatial and structural measurements. The goal here is to establish which geometric features most reliably distinguish residential forms.
+
+Both tasks are treated as independent prediction problems sharing a common preprocessing pipeline. Nine regression algorithms and eight classification algorithms are compared, selected to represent a range of learning strategies from interpretable linear models to opaque ensemble methods. A key concern throughout is not only predictive performance but also the degree to which each model class supports interpretation of its results.
+
+# Exploratory Data Analysis
+
+## Target Variable Distributions
+
+**Year Built.** Construction years span from 1872 to 2010, with a mean of 1971.4 and a standard deviation of 30.2 years. The distribution is moderately left-skewed (skewness = $-0.604$, kurtosis = $-0.502$), reflecting the historical accumulation of housing stock — few nineteenth-century properties survive in the sample, while the bulk of observations are concentrated from the mid-twentieth century onward. Figure \ref{fig:yearbuilt} illustrates this distribution.
+
+```{r fig-yearbuilt, fig.cap="\\label{fig:yearbuilt}Distribution of Year Built: histogram with kernel density estimate (left) and boxplot (right). The left-skewed shape reflects the uneven historical accumulation of housing stock in the dataset.", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_yearbuilt_dist.png")
+```
+
+**House Style.** The original dataset records eight architectural style codes. For modelling purposes, these are consolidated into four typology classes: Single-story (n = 1,481; 50.5\%), Multi-story (n = 905; 30.9\%), 1.5-story (n = 333; 11.4\%), and Split-level (n = 211; 7.2\%). The distribution is considerably imbalanced, with the Single-story class containing more than twice the observations of the next largest class. This imbalance has direct implications for the choice of classification evaluation metric, as discussed in Section \ref{model-selection}. Figure \ref{fig:housestyle} shows the class counts before and after consolidation.
+
+```{r fig-housestyle, fig.cap="\\label{fig:housestyle}House Style distribution. Left: the original eight style codes. Right: the four typology classes used in modelling, formed by grouping related codes.", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_housestyle_dist.png")
+```
+
+## Predictor Relationships
+
+Pearson correlations between numerical predictors and Year Built were computed to identify features carrying a temporal signal. Figure \ref{fig:correlation} displays the 12 largest positive and 12 largest negative correlates. Garage Year Built has the strongest positive association, reflecting the common practice of constructing the garage alongside the main dwelling. Overall Quality and Ground Living Area are also strongly positively correlated, consistent with the historical trend towards higher-grade materials and larger floor plans in more recent construction. Negative correlates include variables associated with older residential conventions, such as Enclosed Porch area and certain basement configurations.
+
+```{r fig-correlation, fig.cap="\\label{fig:correlation}Pearson correlation between numerical predictors and Year Built. Green bars indicate positive correlations; red bars indicate negative correlations. The 12 strongest in each direction are shown.", out.width="0.85\\textwidth"}
+knitr::include_graphics("figures/fig_correlation.png")
+```
+
+Figure \ref{fig:scatter} confirms these relationships through scatter plots of the six most strongly correlated predictors. The near-linear association between Garage Year Built and Year Built is particularly pronounced. Overall Quality shows a step-pattern consistent with the periodic revision of building standards. The Year Remod/Add Delta feature — the number of years between construction and last remodel — is zero for properties that have never been renovated (the majority), which generates a distinctive clustering near zero.
+
+```{r fig-scatter, fig.cap="\\label{fig:scatter}Scatter plots of six key numerical predictors against Year Built. Each point represents one property.", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_scatter_predictors.png")
+```
+
+# Data Preprocessing
+
+## Missing Value Handling
+
+Four columns were removed prior to analysis: `Alley`, `Pool QC`, `Fence`, and `Misc Feature`, each with more than 70\% missing values. Imputing columns at this level of missingness risks distorting the distribution beyond the informative range of the variable. Following this step, the dataset retained 78 variables. Any rows missing either target variable were subsequently removed, leaving 2,930 usable observations.
+
+For the remaining missing values, imputation is handled inside the modelling pipeline rather than on the full dataset. Numerical features are imputed with the column median; categorical features are imputed with the mode. Keeping these steps inside the pipeline ensures that imputation statistics are estimated from the training fold only.
+
+## Feature Engineering
+
+A derived variable, `Year Remod/Add Delta`, is computed as the difference between the recorded remodel year and the construction year. This captures how recently a property was renovated relative to its build date without retaining the raw remodel year, which correlates directly with the regression target. The raw remodel year was then dropped.
+
+Columns representing administrative identifiers (`Order`, `PID`) and sale circumstances (`SalePrice`, `Yr Sold`, `Mo Sold`) were excluded from both feature sets. `House Style` is copied to a separate series before being dropped from the shared feature frame so that it remains available as the classification target without functioning as a predictor for regression.
+
+## Encoding and Scaling
+
+Feature types were divided into five groups, each receiving an appropriate transformation. Sixteen numerical features with approximately symmetric distributions were assigned to a standardisation group: a Yeo-Johnson power transform was applied to reduce residual skew, followed by standardisation to zero mean and unit variance. Eight features with higher skewness were normalised instead, using the same power transform followed by min-max scaling. Twenty-one categorical features with a natural ordering (quality and condition ratings) were encoded with `OrdinalEncoder` using explicit category lists. Nominal features with fewer than ten distinct values received one-hot encoding, and high-cardinality features received binary encoding to limit dimensionality expansion.
+
+## Leakage-Safe Pipeline
+
+All transformation steps were assembled into a single `ColumnTransformer` composed of five sub-pipelines, one per feature group. The transformer was embedded in a scikit-learn `Pipeline` [@Pedregosa2011] alongside each estimator. This design ensures that imputers, scalers, and encoders are fitted exclusively on training data. Fitting any of these steps before the train/test split — a common but methodologically problematic shortcut — would introduce leakage: the imputer would borrow test-set values into training medians, and the scaler would align training bounds to the global distribution.
+
+## Train/Test Split
+
+The dataset was divided into a training set of 2,344 observations (80\%) and a held-out test set of 586 observations (20\%) using a fixed random seed for reproducibility. For the classification task, stratified sampling was applied to ensure proportional representation of all four typology classes in both folds, which is important given the small size of the Split-level class (n = 211).
+
+The classification feature set differs from the regression set. Temporal predictors (`Year Built`, `Garage Yr Blt`, `Year Remod/Add Delta`) and `MS SubClass` — whose codes directly encode storey configuration — were excluded, leaving 30 geometric and structural features. Labels were encoded to integers prior to training for compatibility with the XGBoost implementation, with the original class names retained for display.
+
+# Model Selection
+
+## Regression Models
+
+Nine algorithms were trained to represent a broad spectrum of learning strategies. Table \ref{tab:reg-models} summarises the model classes, their key methodological properties, and the primary justification for their inclusion.
+
+```{r tab-reg-models, echo=FALSE}
+reg_tbl <- data.frame(
+  Model = c("Linear Regression", "Ridge Regression", "Decision Tree",
+            "Random Forest", "Gradient Boosting", "XGBoost",
+            "SVR", "KNN", "Neural Network"),
+  `Key property` = c("Linear, no regularisation",
+                     "Linear, L2 regularisation",
+                     "Non-linear, single tree",
+                     "Ensemble (bagging)",
+                     "Ensemble (boosting)",
+                     "Ensemble (boosting, regularised)",
+                     "Kernel-based, non-linear",
+                     "Instance-based",
+                     "Feedforward network"),
+  `Inclusion rationale` = c("Baseline; maximum interpretability",
+                              "Regularised linear baseline; stable under collinearity",
+                              "Non-linear, interpretable threshold model",
+                              "Reduces tree variance; partial feature importance",
+                              "Sequential residual fitting; strong on tabular data",
+                              "As GB with additional regularisation and efficiency",
+                              "Non-parametric; tests kernel bandwidth sensitivity",
+                              "Non-parametric; local prediction behaviour",
+                              "Flexible; tests deep-interaction capacity"),
+  check.names = FALSE
+)
+knitr::kable(reg_tbl, caption = "\\label{tab:reg-models}Regression model classes and inclusion rationale.",
+             booktabs = TRUE, linesep = "")
+```
+
+Note that Polynomial Regression was initially considered but replaced by Ridge Regression. Applying a degree-2 polynomial expansion to the 150+ post-encoding features produces an approximately 11,000-column design matrix, causing ordinary least squares to diverge. Ridge Regression [@Hoerl1970] with $\alpha = 1.0$ provides the regularised linear baseline instead.
+
+## Classification Models
+
+Eight classifiers were trained using the same pipeline structure. The selection mirrors the regression panel: Logistic Regression as the linear baseline; Decision Tree as an interpretable non-linear baseline; Random Forest [@Breiman2001], Gradient Boosting [@Friedman2001], and XGBoost [@ChenGuestrin2016] as ensemble methods; Support Vector Classifier [@Cortes1995] as the kernel-based reference; K-Nearest Neighbours as the instance-based reference; and a Multi-Layer Perceptron as the neural network representative.
+
+## Interpretability Considerations
+
+Model interpretability was treated as an explicit criterion alongside predictive performance. The models in this study can be ranked roughly from most to least interpretable:
+
+1. **Ridge / Linear Regression** — coefficients have a direct interpretation as the change in predicted construction year per unit increase in the corresponding standardised predictor.
+2. **Decision Tree** — predictions are fully traceable through a tree structure; feature importance reflects the weighted impurity reduction across splits.
+3. **Random Forest** — aggregated feature importance (mean decrease in impurity across all trees) is informative and reliable, though individual predictions are less traceable than for a single tree.
+4. **Gradient Boosting / XGBoost** — feature importance via gain is analogous to Random Forest; SHAP values can be computed to explain individual predictions at the feature level.
+5. **K-Nearest Neighbours** — any prediction can be traced to the $k$ nearest training observations, providing a form of case-based explanation.
+6. **SVR** — the support vector representation and kernel function make direct attribution of predictions to input features difficult.
+7. **Neural Network** — weights and activations are not directly interpretable at the predictor level.
+
+Where two models produce similar predictive performance, the more interpretable variant is methodologically preferable. The regression results (Section \ref{results}) will show whether the accuracy gains of ensemble methods over linear baselines justify the reduction in interpretability.
+
+## Evaluation Metrics
+
+For regression, the primary metric is **Root Mean Squared Error (RMSE)** in years. RMSE penalises large individual errors and is expressed in the same units as the target, facilitating direct interpretation. Mean Absolute Error (MAE) and $R^2$ are reported as supplementary metrics.
+
+For classification, **macro-averaged F1 score** is the primary metric. Given the substantial class imbalance (the Single-story class contains 50.5\% of observations), accuracy alone is insufficient: a model predicting the majority class for every observation would achieve roughly 50\% accuracy without learning any meaningful boundary. Macro F1 computes precision and recall per class and averages them with equal weight, penalising poor performance on minority classes as severely as poor performance on the majority. Accuracy, macro precision, and macro recall are reported alongside F1.
+
+## Cross-Validation and Hyperparameter Tuning
+
+Five-fold cross-validation was applied to all models to assess generalisation stability. For regression, negative mean squared error was the scoring criterion. For classification, accuracy was used.
+
+Hyperparameter tuning was subsequently applied to the four best-performing models in each task. `RandomizedSearchCV` with 10 iterations was used for Random Forest and XGBoost, given their larger parameter spaces. `GridSearchCV` was used for Gradient Boosting and SVR/SVC. All searches were conducted with five-fold cross-validation on the training set, with the scoring criterion being negative MSE for regression and macro F1 for classification. The held-out test set was not accessed during tuning.
+
+# Results
+
+## Regression
+
+Table \ref{tab:reg-results} reports test-set performance across all nine models. Random Forest achieves the lowest RMSE (4.85 years) and highest $R^2$ (0.973), with XGBoost close behind (RMSE = 5.33, $R^2$ = 0.968). All three ensemble methods substantially outperform the linear baselines, which plateau around $R^2 = 0.89$, confirming that non-linear interactions among predictors are necessary to recover the full chronological signal.
+
+```{r tab-reg-results, echo=FALSE}
+reg_res <- data.frame(
+  Model = c("Linear Regression", "Ridge Regression", "Decision Tree",
+            "Random Forest", "Gradient Boosting", "XGBoost",
+            "SVR", "KNN", "Neural Network"),
+  MAE   = c(7.15, 7.09, 2.37, 2.02, 3.65, 2.60, 6.84, 4.93, 6.69),
+  RMSE  = c(9.76, 9.68, 6.51, 4.85, 6.32, 5.33, 11.13, 8.48, 9.34),
+  R2    = c(0.891, 0.893, 0.952, 0.973, 0.954, 0.968, 0.859, 0.918, 0.901),
+  check.names = FALSE
+)
+knitr::kable(reg_res,
+             caption = "\\label{tab:reg-results}Regression results on the held-out test set (n = 586). MAE and RMSE are in years. Bold values indicate the best result per metric.",
+             booktabs = TRUE, linesep = "", digits = 3,
+             col.names = c("Model", "MAE (yrs)", "RMSE (yrs)", "R\\textsuperscript{2}"))
+```
+
+Figure \ref{fig:reg-comp} visualises these results. The colour coding — green for the two best models, orange for mid-range, red for the three worst — clarifies the performance gap between tree ensembles and other approaches.
+
+```{r fig-reg-comp, fig.cap="\\label{fig:reg-comp}Comparison of all nine regression models by test-set RMSE (left) and R\\textsuperscript{2} (right). Colour indicates rank: green = top 2, light green = ranks 3--4, orange = ranks 5--7, red = bottom 2.", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_reg_comparison.png")
+```
+
+Table \ref{tab:reg-cv} reports five-fold cross-validation results, which broadly confirm the test-set ranking. The low standard deviations for Random Forest ($\pm 0.45$) and Gradient Boosting ($\pm 0.52$) indicate stable generalisation. The Neural Network shows high CV variance (RMSE = 16.66 $\pm$ 11.56), considerably larger than its single test-set result of 9.34. This instability suggests the MLP's performance depends on how the data are divided — likely an interaction between the default architecture and the uneven temporal distribution of observations across folds.
+
+```{r tab-reg-cv, echo=FALSE}
+cv_reg <- data.frame(
+  Model = c("Linear Regression", "Ridge Regression", "Decision Tree",
+            "Random Forest", "Gradient Boosting", "XGBoost",
+            "SVR", "KNN", "Neural Network"),
+  Mean  = c(12.54, 12.52, 7.69, 5.24, 6.10, 5.59, 12.38, 8.76, 16.66),
+  SD    = c(5.33, 5.34, 0.76, 0.45, 0.52, 0.75, 1.57, 1.19, 11.56),
+  check.names = FALSE
+)
+knitr::kable(cv_reg,
+             caption = "\\label{tab:reg-cv}Five-fold cross-validation results for regression. CV RMSE is in years.",
+             booktabs = TRUE, linesep = "", digits = 2,
+             col.names = c("Model", "CV RMSE mean (yrs)", "CV RMSE std"))
+```
+
+Figure \ref{fig:reg-cv} displays the CV results with error bars, making the instability of the linear models and the neural network visually apparent.
+
+```{r fig-reg-cv, fig.cap="\\label{fig:reg-cv}Five-fold cross-validation RMSE for all regression models (mean $\\pm$ standard deviation).", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_reg_cv.png")
+```
+
+Figure \ref{fig:pred-actual} plots predicted against actual construction year for the four best-performing models. The Random Forest and XGBoost scatter plots show tight clustering around the perfect-prediction diagonal, with no systematic over- or under-prediction across the year range. The Ridge Regression plot shows a broader dispersion, particularly for properties built before 1940, where the linear model's inability to capture rare historical patterns is most apparent.
+
+```{r fig-pred-actual, fig.cap="\\label{fig:pred-actual}Predicted vs actual Year Built for the four best-performing regression models. The red dashed line marks perfect prediction. RMSE and R\\textsuperscript{2} are reported in each panel title.", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_predicted_vs_actual.png")
+```
+
+After hyperparameter tuning, Random Forest and XGBoost retained their first and second positions. The tuned models produced marginal gains over default settings, suggesting that the default hyperparameters were already reasonably matched to the task and that the choice of model class has greater impact than tuning within a class.
+
+## Classification
+
+Table \ref{tab:clf-results} reports test-set performance across all eight classifiers. XGBoost achieves the highest accuracy (91.5\%) and macro F1 (0.833), followed closely by Gradient Boosting (91.3\%, F1 = 0.814). The gap between accuracy and macro F1 for most models reveals the effect of class imbalance: models that correctly classify the dominant Single-story class but struggle with Split-level properties will show high accuracy but moderate F1.
+
+```{r tab-clf-results, echo=FALSE}
+clf_res <- data.frame(
+  Model = c("Logistic Regression", "Decision Tree", "Random Forest",
+            "Gradient Boosting", "XGBoost", "SVC", "KNN", "Neural Network"),
+  Acc  = c(0.879, 0.850, 0.899, 0.913, 0.915, 0.879, 0.843, 0.881),
+  Prec = c(0.792, 0.736, 0.897, 0.897, 0.881, 0.914, 0.780, 0.804),
+  Rec  = c(0.699, 0.754, 0.728, 0.779, 0.802, 0.670, 0.675, 0.767),
+  F1   = c(0.726, 0.744, 0.763, 0.814, 0.833, 0.691, 0.710, 0.783),
+  check.names = FALSE
+)
+knitr::kable(clf_res,
+             caption = "\\label{tab:clf-results}Classification results on the held-out test set (n = 586). All metrics are macro-averaged across the four typology classes.",
+             booktabs = TRUE, linesep = "", digits = 3,
+             col.names = c("Model", "Accuracy", "Precision", "Recall", "F1 (macro)"))
+```
+
+```{r fig-clf-comp, fig.cap="\\label{fig:clf-comp}Comparison of all eight classification models by test-set accuracy (left) and macro F1 score (right).", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_clf_comparison.png")
+```
+
+Table \ref{tab:clf-cv} shows five-fold cross-validation results. The ranking is consistent with the test set, and standard deviations are small for most models. Gradient Boosting is notably stable (std = 0.006), while KNN shows the highest variability (std = 0.024), reflecting sensitivity to local data density across folds.
+
+```{r tab-clf-cv, echo=FALSE}
+cv_clf <- data.frame(
+  Model = c("Logistic Regression", "Decision Tree", "Random Forest",
+            "Gradient Boosting", "XGBoost", "SVC", "KNN", "Neural Network"),
+  Mean  = c(0.869, 0.852, 0.904, 0.905, 0.910, 0.874, 0.836, 0.876),
+  SD    = c(0.015, 0.018, 0.011, 0.006, 0.010, 0.011, 0.024, 0.017),
+  check.names = FALSE
+)
+knitr::kable(cv_clf,
+             caption = "\\label{tab:clf-cv}Five-fold cross-validation accuracy for all classification models.",
+             booktabs = TRUE, linesep = "", digits = 3,
+             col.names = c("Model", "CV Accuracy mean", "CV Accuracy std"))
+```
+
+```{r fig-clf-cv, fig.cap="\\label{fig:clf-cv}Five-fold cross-validation accuracy for all classification models (mean $\\pm$ standard deviation).", out.width="\\textwidth"}
+knitr::include_graphics("figures/fig_clf_cv.png")
+```
+
+Figure \ref{fig:confusion} shows the confusion matrix for XGBoost, the best classifier. The matrix reveals that Single-story and Multi-story properties are classified with high accuracy, while 1.5-story properties are occasionally misclassified as Multi-story and Split-level properties show the highest error rate, primarily being predicted as Single-story or Multi-story.
+
+```{r fig-confusion, fig.cap="\\label{fig:confusion}Confusion matrix for XGBoost on the held-out test set. Rows represent actual typology classes; columns represent predicted classes.", out.width="0.7\\textwidth"}
+knitr::include_graphics("figures/fig_confusion_matrix.png")
+```
+
+# Discussion and Conclusion
+
+## Regression Task
+
+The strong performance of tree-based ensemble methods (Random Forest $R^2 = 0.973$, XGBoost $R^2 = 0.968$) confirms that a property's physical attributes carry a chronological signal that machine learning can recover with high accuracy. The clear advantage of non-linear methods over linear baselines ($R^2 \approx 0.89$) is methodologically informative: approximately 11\% of variance in construction year is inaccessible to any linear combination of predictors, suggesting that the relationship between physical attributes and construction era involves threshold effects. This is consistent with the historical structure of building practice — materials and design standards did not shift continuously but were subject to periodic regulatory and technological step-changes, which decision boundaries in a tree can represent directly.
+
+The SVR's underperformance (RMSE = 11.13, $R^2 = 0.859$) relative to other non-linear methods is notable. The default radial basis function kernel with standard regularisation parameters appears poorly matched to this dataset's structure, and further kernel bandwidth tuning would be required to achieve competitive results. This demonstrates a known limitation of SVR: its performance is highly sensitive to hyperparameter choices, making it more demanding to deploy than tree-based alternatives.
+
+The neural network's high cross-validation variance (RMSE = 16.66 $\pm$ 11.56) stands in contrast to its reasonable test-set result (RMSE = 9.34). This divergence suggests that the MLP's performance is fold-dependent rather than robustly generalised. With 2,344 training observations and 150 post-encoding features, the default architecture likely lacks the capacity to exploit deep interaction effects consistently, while the uneven temporal distribution of observations across folds creates varying learning conditions.
+
+## Classification Task
+
+The classification results establish that architectural typology is recoverable from geometric measurements with reasonable accuracy (XGBoost: 91.5\%, macro F1 = 0.833). The gap between accuracy and macro F1 highlights the effect of class imbalance: the SVC achieves 87.9\% accuracy but a macro F1 of only 0.691, driven by low recall (0.670) for the minority classes. Its high precision (0.914) indicates conservative decision boundaries — the model rarely ventures into minority-class territory, reserving those predictions for high-confidence cases. This behaviour is systematically visible in the confusion matrix (Figure \ref{fig:confusion}): Split-level properties, which constitute only 7.2\% of the dataset, are misclassified at a higher rate than any other class.
+
+The confusion between 1.5-story and Multi-story properties, and between Split-level and Single-story properties, is architecturally interpretable. Both 1.5-story and split-level forms occupy an intermediate position in the floor-area space: a one-and-a-half story home has a partial upper storey, and a split-level home has partial floors at offset heights. The 30-feature geometric representation captures aggregate measurements — total area, room counts, basement footprint — but not the volumetric arrangement that distinguishes these forms from a full two-story layout. This places a ceiling on classification accuracy that is independent of model choice.
+
+## Model Interpretability
+
+For the regression task, the two best models (Random Forest and XGBoost) offer partial interpretability via feature importance. Both methods identify Garage Year Built, Overall Quality, and Ground Living Area as the most informative predictors — a result that aligns with the correlation analysis in Section \ref{exploratory-data-analysis}. For applications where understanding which features drive a prediction is important, XGBoost with SHAP values would provide the most operationally useful explanations at the instance level.
+
+The linear models (Linear Regression and Ridge) offer full coefficient-level interpretability but at a substantial accuracy cost: approximately 5 RMSE years relative to Random Forest. In settings where interpretability is the primary constraint and approximate accuracy is acceptable, Ridge Regression would be preferable. For most applications of this type, the performance gap justifies the trade-off in favour of Random Forest or XGBoost.
+
+For classification, the Gradient Boosting and XGBoost classifiers offer analogous interpretability properties to their regression counterparts. The Decision Tree, though lower-performing, provides the most transparent model: a single tree can be visualised and every prediction traced to an explicit sequence of attribute thresholds. The similarity between Decision Tree accuracy (85.0\%) and Logistic Regression accuracy (87.9\%) suggests that non-linear boundaries alone do not account for the performance advantage of ensemble methods; variance reduction through aggregation is equally important.
+
+## Limitations
+
+Both tasks are evaluated on data from a single city over a four-year period. The chronological signal exploited by the regression model reflects construction norms specific to Ames, Iowa, and may not transfer to other geographic or cultural contexts. The four-class typology consolidation is one of several valid grouping choices; different groupings would produce different class boundaries and potentially different difficulty rankings for the classifiers.
+
+Some geometric features retained in the classification feature set — such as garage size and basement finish level — are themselves correlated with construction era, which means the model may exploit an indirect temporal signal rather than purely spatial information. Disentangling these contributions would require a more controlled feature selection procedure or a residualisation approach.
+
+## Conclusion
+
+This study demonstrates that residential properties in the Ames Housing Dataset carry two forms of latent architectural information — construction era and structural typology — that machine learning can recover with high accuracy. Random Forest achieves the strongest regression performance (RMSE = 4.85 years, $R^2 = 0.973$), and XGBoost achieves the strongest classification performance (accuracy = 91.5\%, macro F1 = 0.833). In both tasks, gradient-boosted ensemble methods consistently outperform linear, kernel-based, and instance-based alternatives. Cross-validation confirms that these results are stable and not artefacts of a favourable train/test split.
+
+From a methodological standpoint, the study illustrates three recurring considerations in tabular machine learning: the value of leakage-safe preprocessing pipelines, the importance of selecting evaluation metrics that account for class imbalance, and the trade-off between predictive accuracy and model interpretability. When the accuracy margin justifies it, ensemble methods provide an effective combination of strong generalisation and partial explainability through feature importance — a balance that makes them well suited to structured prediction tasks on housing data.
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      cache = FALSE)
+options(digits = 7) # default of R
+```
+
+# Rmarkdown Template
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents . For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE, fig.cap="\\label{fig:pressure} Pressure"}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. You can label the plot above by including the label `\\label{fig:pressure}` in the chunk argument `fig.cap`. A reference to the plot is then made as follows:
+
+Looking at Figure \ref{fig:pressure} makes me happy.
+
+## The YAML Header
+
+The YAML Header is at the very top of this document. It is enclosed in 3 dashes.
+Although there are already some options specified you might want to change some additional things. Here are some useful things that we have implemented for you.
+
+### language
+
+You can either set this to english or german. If the language is not specified in the YAML header it will use english e.g.:
+
+language: english
+
+language: german
+
+This variable affects mainly the headings of your output file.
+
+### linespread
+
+The default value for the linespread is 1.5. Usually this is fine and sometimes it's required. If you nevertheless want to change it you can do so by specifying the linespread variable. E.g.:
+
+linespread: 1
+
+# How Rmarkdown makes your life easy
+
+## The kable function
+
+In Empirical work it's crucial not only to present your results but also to explain your research strategy. Often times that involes creating tables to present the used data and creating tables to show your results. Creating tables (e.g. in Latex) by hand is hard and time consuming but there are a variety of packages out there that can automate this job for you. One of them is the kable package. It can produce Latex tables from a variety of R Objects.
+
+Consider the following Example: you are working on an analysis of black cherry trees and want to present n observations to the reader You can do that using the knitr::kable() function.
+
+```{r, echo=FALSE, trees}
+data(trees)
+n <- 6
+knitr::kable(trees[sample(1:nrow(trees),n),], 
+             caption = paste(n, "Observations from the trees Dataset"),
+             row.names = F,
+             col.names = c("Diameter", "Height", "Volume"))
+```
+
+Now that we have presented our data it's analysis time! Lets start with a quick call to summary().
+
+## The Stargazer package
+
+Calling summary() in a code chunk will work but this will give you quite an ugly result (just try it for yourself!). When it comes to presenting more structured objects like summaries, model results or for example correlation matrices the stargazer package is well suited.
+
+```{r, results='asis', echo=FALSE}
+stargazer::stargazer(trees, label = "summary", header=FALSE, title = "Summary")
+```
+
+Assume we want to evaluate how the height and the volume of a typical cherry tree are related. We are estimating this using OLS to estimate a simple linear model.
+
+```{r, results='asis', echo = FALSE}
+mod <- lm(Volume ~ Height, data = trees)
+stargazer::stargazer(mod,label  = "regression", title = "Regression results", header=FALSE)
+```
+
+Now that we have our model we can visualize it.
+
+```{r, echo = FALSE, fig.cap= "Dataset and regression", Regression}
+plot(trees$Volume ~ trees$Height)
+abline(mod)
+```
+\pagebreak
+
+# Listing
+
+\begin{itemize}
+  \item Hallo 
+  \item World
+\end{itemize}
+
+\pagebreak
+
+
+# Acronyms usage
+
+The \acrshort{itt} analysis ensures that all randomized participants are included, regardless of whether they adhered to the treatment protocol. We employed \acrshort{iv} estimation to address potential endogeneity in the treatment assignment. The \acrshort{sbcf} model was applied to estimate heterogeneous treatment effects across subpopulations. To account for unobserved confounding, we extended our analysis using the \acrshort{sbcf-iv} approach.
+
+\pagebreak
+
+## Citations
+
+The a *bibtex* bibliography can be used for citations. The file name of the bibliography used in this template is `references.bib`
+
+You can cite a source like this: [@Keil_2012] or @Litterman1986.
+
+A cited source will be automatically added to the end of the document.
+
+
+
+
+
+
