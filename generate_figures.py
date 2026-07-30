@@ -55,6 +55,13 @@ df.dropna(subset=['Year Built', 'House Style'], inplace=True)
 df['Year Remod/Add Delta'] = df['Year Remod/Add'] - df['Year Built']
 house_style_target = df['House Style'].copy()
 
+# Match the leakage-prevention drop from preprocessing.ipynb: identifiers,
+# sale-circumstance columns, the classification target, and the raw remodel
+# year (replaced by the engineered delta) must not appear in the EDA feature
+# set used for the Year Built correlation/scatter plots below.
+df.drop(columns=['Order', 'PID', 'SalePrice', 'House Style',
+                 'Year Remod/Add', 'Yr Sold', 'Mo Sold'], inplace=True)
+
 # ── Figure 1: Year Built distribution ────────────────────────────────────────
 print("Figure 1 ...")
 fig, axes = plt.subplots(1, 2, figsize=(11, 4))
@@ -138,8 +145,8 @@ plt.close()
 print("Figure 5 ...")
 mnames = ['Linear Reg.', 'Ridge Reg.', 'Decision Tree', 'Random Forest',
           'Grad. Boosting', 'XGBoost', 'SVR', 'KNN', 'Neural Network']
-rmse_v = [9.7641, 9.6814, 6.5082, 4.8484, 6.3236, 5.3285, 11.1250, 8.4758, 9.3404]
-r2_v   = [0.8913, 0.8931, 0.9517, 0.9732, 0.9544, 0.9676, 0.8589, 0.9181, 0.9005]
+rmse_v = [9.72, 9.63, 6.20, 4.85, 6.23, 5.20, 11.07, 8.41, 9.10]
+r2_v   = [0.892, 0.894, 0.956, 0.973, 0.956, 0.969, 0.860, 0.919, 0.906]
 
 rank_r = np.argsort(rmse_v)
 cmap_r = {}
@@ -169,8 +176,8 @@ plt.close()
 
 # ── Figure 6: Regression CV ───────────────────────────────────────────────────
 print("Figure 6 ...")
-cv_r  = [12.5437, 12.5154, 7.6851, 5.2381, 6.1017, 5.5886, 12.3818, 8.7599, 16.6615]
-cv_rs = [5.3257,  5.3378,  0.7638, 0.4485, 0.5189, 0.7490,  1.5672,  1.1936, 11.5587]
+cv_r  = [9.90, 9.86, 7.64, 5.24, 6.09, 5.71, 12.37, 8.71, 12.21]
+cv_rs = [0.97, 0.96, 0.59, 0.45, 0.58, 0.73, 1.58, 1.20, 4.03]
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.barh(range(len(mnames)), cv_r, xerr=cv_rs, color='steelblue', edgecolor='black',
         height=0.6, capsize=4, alpha=0.85)
