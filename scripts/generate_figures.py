@@ -31,7 +31,7 @@ plt.rcParams.update({
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 print("Loading preprocessed_data.pkl ...")
-with open('preprocessed_data.pkl', 'rb') as f:
+with open('data/processed/preprocessed_data.pkl', 'rb') as f:
     data = pickle.load(f)
 
 X_train, X_test = data['X_train'], data['X_test']
@@ -49,7 +49,7 @@ y_train_clf_enc = pd.Series(le.transform(y_train_clf_raw), index=y_train_clf_raw
 y_test_clf_enc  = pd.Series(le.transform(y_test_clf_raw),  index=y_test_clf_raw.index)
 
 # EDA raw frame
-df = pd.read_csv('AmesHousing.csv')
+df = pd.read_csv('data/raw/AmesHousing.csv')
 df.drop(columns=df.columns[df.isnull().mean() > 0.70], inplace=True)
 df.dropna(subset=['Year Built', 'House Style'], inplace=True)
 df['Year Remod/Add Delta'] = df['Year Remod/Add'] - df['Year Built']
