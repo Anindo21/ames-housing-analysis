@@ -217,3 +217,25 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .Rproj.user
+
+# -- R -------------------------------------------------------------------------
+.RData
+.Rhistory
+.Rprofile
+.Rproj.user/
+
+# Generated LaTeX and PDF build artefacts
+*.tex
+*.pdf
+*.bbl
+*.bcf
+*.blg
+*.lof
+*.lot
+*.toc
+*.run.xml
+*_files/
+
+# -- Project-specific generated files ------------------------------------------
+data/processed/
+figures/
