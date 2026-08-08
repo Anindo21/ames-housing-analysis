@@ -10,7 +10,6 @@ supervisor: ""
 secondsupervisor: ""
 ssemester: "1"
 estdegree_emester: "Summer Term 2026"
-abstract: "This paper turns the Ames Housing Dataset toward two questions that have nothing to do with sale price. Can a property's original construction year be recovered from its physical attributes and quality ratings alone? And can its architectural typology, one of four broad classes, be predicted from spatial and structural measurements? Nine regression models and eight classifiers were trained inside a single leakage-safe pipeline, tested on a held-out set, and the four strongest performers in each task were then tuned further. Random Forest, using nothing but its default settings, turned in the best regression result (RMSE of 4.85 years, R\\textsuperscript{2} = 0.973); tuned XGBoost led the classification task (macro F1 of 0.837, accuracy of 91.8\\%). Both point to the same conclusion: a house's physical design encodes a recoverable signal about when it was built and how it was shaped, and tree-based ensembles are the most reliable way to pull that signal out of tabular housing data."
 deadline: "Aug 28, 2026"
 output:
   pdf_document:
