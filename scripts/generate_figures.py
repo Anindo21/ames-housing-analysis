@@ -145,8 +145,8 @@ plt.close()
 print("Figure 5 ...")
 mnames = ['Linear Reg.', 'Ridge Reg.', 'Decision Tree', 'Random Forest',
           'Grad. Boosting', 'XGBoost', 'SVR', 'KNN', 'Neural Network']
-rmse_v = [9.72, 9.63, 6.20, 4.85, 6.23, 5.20, 11.07, 8.41, 9.10]
-r2_v   = [0.892, 0.894, 0.956, 0.973, 0.956, 0.969, 0.860, 0.919, 0.906]
+rmse_v = [9.77, 9.68, 8.06, 5.18, 6.26, 5.36, 11.08, 8.44, 8.42]
+r2_v   = [0.891, 0.893, 0.926, 0.969, 0.955, 0.967, 0.860, 0.919, 0.919]
 
 rank_r = np.argsort(rmse_v)
 cmap_r = {}
@@ -175,9 +175,11 @@ plt.savefig('figures/fig_reg_comparison.png', bbox_inches='tight')
 plt.close()
 
 # ── Figure 6: Regression CV ───────────────────────────────────────────────────
+# CV is computed on the training fold only (X_train/y_train in regression.ipynb),
+# so these values are independent of the held-out test-set scores above.
 print("Figure 6 ...")
-cv_r  = [9.90, 9.86, 7.64, 5.24, 6.09, 5.71, 12.37, 8.71, 12.21]
-cv_rs = [0.97, 0.96, 0.59, 0.45, 0.58, 0.73, 1.58, 1.20, 4.03]
+cv_r  = [10.25, 10.14, 8.73, 5.64, 6.21, 5.95, 12.94, 9.03, 14.15]
+cv_rs = [0.58, 0.59, 0.97, 0.36, 0.17, 0.26, 1.01, 0.84, 2.28]
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.barh(range(len(mnames)), cv_r, xerr=cv_rs, color='steelblue', edgecolor='black',
         height=0.6, capsize=4, alpha=0.85)
@@ -218,8 +220,8 @@ plt.close()
 print("Figure 8 ...")
 cnames  = ['Logistic Reg.', 'Decision Tree', 'Random Forest', 'Grad. Boosting',
            'XGBoost', 'SVC', 'KNN', 'Neural Network']
-acc_v  = [0.8788, 0.8498, 0.8993, 0.9130, 0.9147, 0.8788, 0.8430, 0.8805]
-f1_v   = [0.7256, 0.7439, 0.7634, 0.8136, 0.8333, 0.6909, 0.7104, 0.7826]
+acc_v  = [0.8788, 0.8498, 0.8993, 0.9130, 0.9147, 0.8788, 0.8430, 0.8840]
+f1_v   = [0.7256, 0.7439, 0.7634, 0.8136, 0.8333, 0.6909, 0.7104, 0.7878]
 
 rank_f = np.argsort(f1_v)
 cmap_f = {}
@@ -248,9 +250,11 @@ plt.savefig('figures/fig_clf_comparison.png', bbox_inches='tight')
 plt.close()
 
 # ── Figure 9: Classification CV ───────────────────────────────────────────────
+# CV is computed on the training fold only (X_train_clf/y_train_clf in
+# classification.ipynb), so these values are independent of the test-set scores above.
 print("Figure 9 ...")
-cv_a  = [0.8686, 0.8522, 0.9044, 0.9048, 0.9099, 0.8737, 0.8358, 0.8758]
-cv_as = [0.0147, 0.0179, 0.0112, 0.0056, 0.0103, 0.0106, 0.0240, 0.0173]
+cv_a  = [0.8622, 0.8549, 0.9049, 0.9010, 0.9049, 0.8669, 0.8311, 0.8776]
+cv_as = [0.0141, 0.0097, 0.0081, 0.0170, 0.0112, 0.0125, 0.0041, 0.0153]
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.barh(range(len(cnames)), cv_a, xerr=cv_as, color='#2ca25f', edgecolor='black',
         height=0.6, capsize=4, alpha=0.85)
@@ -287,6 +291,46 @@ for i in range(4):
                 color='white' if cm[i,j] > thresh else 'black')
 plt.tight_layout()
 plt.savefig('figures/fig_confusion_matrix.png', bbox_inches='tight')
+plt.close()
+
+# ── Figure 11: Feature importance (Random Forest & XGBoost, regression) ──────
+print("Figure 11: fitting RF and XGBoost for feature importance ...")
+fi_models = {
+    'Random Forest': RandomForestRegressor(random_state=42),
+    'XGBoost':        XGBRegressor(random_state=42),
+}
+fig, axes = plt.subplots(1, 2, figsize=(11, 5))
+for ax, (name, model) in zip(axes, fi_models.items()):
+    pipe = Pipeline([('pre', preprocessor), ('m', clone(model))])
+    pipe.fit(X_train, y_train)
+    feat_names  = pipe.named_steps['pre'].get_feature_names_out()
+    importances = pipe.named_steps['m'].feature_importances_
+    top_idx     = np.argsort(importances)[-10:]
+    ax.barh(range(len(top_idx)), importances[top_idx], color='steelblue', edgecolor='black')
+    ax.set_yticks(range(len(top_idx)))
+    ax.set_yticklabels([feat_names[i] for i in top_idx])
+    ax.set_xlabel('Importance (mean decrease in impurity)')
+    ax.set_title(name)
+plt.tight_layout()
+plt.savefig('figures/fig_feature_importance.png', bbox_inches='tight')
+plt.close()
+
+# ── Figure 12: Classification EDA — key predictors by typology ──────────────
+print("Figure 12 ...")
+eda_cols = ['2nd Flr SF', 'Gr Liv Area', 'TotRms AbvGrd']
+plot_df  = X_clf[eda_cols].copy()
+plot_df['Typology'] = data['y_clf'].values
+order = ['Single-story', '1.5-story', 'Multi-story', 'Split-level']
+
+fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
+for ax, col in zip(axes, eda_cols):
+    sns.boxplot(data=plot_df, x='Typology', y=col, order=order,
+                hue='Typology', legend=False, palette='Set2', ax=ax)
+    ax.set_title(col)
+    ax.set_xlabel('')
+    ax.tick_params(axis='x', rotation=20)
+plt.tight_layout()
+plt.savefig('figures/fig_clf_eda.png', bbox_inches='tight')
 plt.close()
 
 print(f"\nDone. {len(os.listdir('figures'))} figures saved to figures/")
