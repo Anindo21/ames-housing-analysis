@@ -6,8 +6,8 @@ author: "Rezaul Hoque, Sarah Al-Talal"
 discipline: "Information Systems"
 date: "today"
 studid: ", "
-supervisor: ""
-secondsupervisor: ""
+supervisor: "Prof. Dr. Thomas Deckers"
+secondsupervisor: "M. Sc. Saskia Schütte"
 ssemester: "1"
 estdegree_emester: "Summer Term 2026"
 deadline: "Aug 28, 2026"
@@ -50,9 +50,9 @@ The Ames Housing Dataset [@DeCock2011] records 2,930 residential property sales 
 
 A fair amount of that other work already exists: machine learning has been applied to the Ames dataset and comparable sources to forecast sale price directly and to work out which housing characteristics move the market most [@ChoyHo2023; @HoTangWong2020; @JinXu2025].
 
-Two prediction problems drive the analysis here. The first asks whether a property's original construction year can be estimated from its physical attributes and quality ratings alone, with no temporal metadata and no market data in sight. The working assumption is that construction era leaves a trace — in material choices, room configurations, the amenities that came and went across the twentieth century. The second is a four-class classification problem: predicting whether a property is single-story, multi-story, one-and-a-half story, or split-level, based purely on its spatial and structural measurements. Here the question is simpler — which geometric features actually separate one residential form from another.
+Two prediction problems drive the analysis here. The first asks whether a property's original construction year can be estimated from its physical attributes and quality ratings alone, with no temporal metadata and no market data in sight. The working assumption is that construction era leaves a trace — in material choices, room configurations, the amenities that came and went across the twentieth century. The second is a four-class classification problem: predicting whether a property is single-story, multi-story, one-and-a-half story, or split-level, based purely on its spatial and structural measurements. Here the question is simpler — which geometric features actually separate one residential form from another. Section \ref{practical-implications} returns to why recovering either quantity is useful in practice, once the two attributes that would normally supply this information — a construction date and a style label — cannot be assumed to already be on file.
 
-The two tasks are kept independent, though they share a single preprocessing pipeline. Nine regression algorithms and eight classifiers are compared, chosen to span the range from interpretable linear models to opaque ensembles. Predictive performance matters throughout, but so does a question that gets asked less often: how much can each model class actually tell us about why it made a given prediction?
+The two tasks are kept independent, though they share a single preprocessing pipeline. Nine regression algorithms and eight classifiers are compared, chosen to span the range from interpretable linear models to opaque ensembles. Predictive performance matters throughout, but so does a question that gets asked less often: how much can each model class actually tell us about why it made a given prediction? All preprocessing, modelling, and evaluation described below was implemented in Python (scikit-learn, XGBoost, category-encoders); this R Markdown document is used only to report and discuss those results.
 
 # Exploratory Data Analysis
 
@@ -183,7 +183,35 @@ Polynomial Regression was tried first and dropped. A degree-2 expansion of the 1
 
 ## Classification Models
 
-Eight classifiers went through the same pipeline, mirroring the regression panel almost model for model: Logistic Regression as the linear baseline, Decision Tree as an interpretable non-linear baseline, Random Forest [@Breiman2001], Gradient Boosting [@Friedman2001], and XGBoost [@ChenGuestrin2016] as the ensemble methods, Support Vector Classifier [@Cortes1995] for the kernel-based approach, K-Nearest Neighbours for instance-based prediction, and a Multi-Layer Perceptron standing in for neural networks.
+Eight classifiers went through the same pipeline, mirroring the regression panel almost model for model. Table \ref{tab:clf-models} lays out the model classes and why each one was included; the rationale mirrors Table \ref{tab:reg-models}, with Logistic Regression standing in for the linear baseline and K-Nearest Neighbours/Multi-Layer Perceptron unchanged in role.
+
+```{r tab-clf-models, echo=FALSE}
+clf_tbl <- data.frame(
+  Model = c("Logistic Regression", "Decision Tree", "Random Forest",
+            "Gradient Boosting", "XGBoost", "SVC", "KNN", "Neural Network"),
+  `Key property` = c("Linear, no regularisation",
+                     "Non-linear, single tree",
+                     "Ensemble (bagging)",
+                     "Ensemble (boosting)",
+                     "Ensemble (boosting, regularised)",
+                     "Kernel-based, non-linear",
+                     "Instance-based",
+                     "Feedforward network"),
+  `Inclusion rationale` = c("Baseline; maximum interpretability",
+                              "Non-linear, interpretable threshold model",
+                              "Reduces tree variance; partial feature importance",
+                              "Sequential residual fitting; strong on tabular data",
+                              "As GB with additional regularisation and efficiency",
+                              "Non-parametric; tests kernel margin sensitivity on an imbalanced task",
+                              "Non-parametric; local prediction behaviour",
+                              "Flexible; tests deep-interaction capacity"),
+  check.names = FALSE
+)
+knitr::kable(clf_tbl, caption = "\\label{tab:clf-models}Classification model classes and inclusion rationale.",
+             booktabs = TRUE, linesep = "")
+```
+
+Random Forest [@Breiman2001], Gradient Boosting [@Friedman2001], and XGBoost [@ChenGuestrin2016] are the ensemble methods; Support Vector Classifier [@Cortes1995] is the kernel-based approach.
 
 ## Interpretability Considerations
 
@@ -207,11 +235,11 @@ For classification, **macro-averaged F1** takes the lead role instead of accurac
 
 ## Cross-Validation and Hyperparameter Tuning
 
-Five-fold cross-validation, restricted to the training fold only, checked generalisation stability across all models — negative mean squared error as the scoring criterion for regression, accuracy for classification. Restricting this check to the training set means the 586 test-set observations used for the final evaluation in Section \ref{results} play no part in it, so the two are genuinely independent estimates rather than the same rows being reused.
+Five-fold cross-validation, restricted to the training fold only, checked generalisation stability across all models — negative mean squared error as the scoring criterion for regression, macro F1 for classification (matching the primary evaluation metric rather than accuracy, for the same class-imbalance reason given above). Restricting this check to the training set means the 586 test-set observations used for the final evaluation in Section \ref{results} play no part in it, so the two are genuinely independent estimates rather than the same rows being reused.
 
-Hyperparameter tuning was applied to four models per task: the two strongest ensemble methods (Random Forest and XGBoost), Gradient Boosting, and the Support Vector Regressor/Classifier. The first three were selected on the basis of strong default cross-validated performance (Tables \ref{tab:reg-cv} and \ref{tab:clf-cv}). The SVR/SVC was included despite comparatively weak default performance, specifically to test whether this shortfall reflected a hyperparameter mismatch — for instance, an unsuitable default kernel bandwidth or margin parameter — rather than a structural limitation of margin-based methods on this feature set. Random Forest and XGBoost, with larger parameter spaces, were tuned using `RandomizedSearchCV` at 10 iterations; Gradient Boosting and SVR/SVC used `GridSearchCV`. Every search ran on five-fold cross-validation over the training set only — negative MSE for regression, macro F1 for classification — and the held-out test set stayed untouched until final evaluation.
+Hyperparameter tuning was applied to four models per task: the three tree ensembles (Random Forest, Gradient Boosting, and XGBoost), and the Support Vector Regressor/Classifier. The three ensembles were selected on the basis of strong default cross-validated performance relative to the linear, kernel-based, and instance-based alternatives (Tables \ref{tab:reg-cv} and \ref{tab:clf-cv}). The SVR/SVC was included despite comparatively weak default performance, specifically to test whether this shortfall reflected a hyperparameter mismatch — for instance, an unsuitable default kernel bandwidth or margin parameter — rather than a structural limitation of margin-based methods on this feature set. Random Forest and XGBoost, with larger parameter spaces, were tuned using `RandomizedSearchCV` at 10 iterations; Gradient Boosting and SVR/SVC used `GridSearchCV`. Every search ran on five-fold cross-validation over the training set only — negative MSE for regression, macro F1 for classification — and the held-out test set stayed untouched until final evaluation.
 
-Table \ref{tab:hp-grid} lists the search space explored for each tuned model. Grid sizes were kept modest (a handful of values per hyperparameter) given the training set size (2,344 rows) and the five-fold repetition this already implies.
+Table \ref{tab:hp-grid} lists the search space explored for each tuned model; Table \ref{tab:hp-selected} reports the specific hyperparameter values each search selected. Grid sizes were kept modest (a handful of values per hyperparameter) given the training set size (2,344 rows) and the five-fold repetition this already implies.
 
 ```{r tab-hp-grid, echo=FALSE}
 hp_grid <- data.frame(
@@ -230,6 +258,24 @@ hp_grid <- data.frame(
 )
 knitr::kable(hp_grid,
              caption = "\\label{tab:hp-grid}Hyperparameter search space for the four tuned models per task. Random Forest's grid differs slightly between tasks; Gradient Boosting, XGBoost and SVR/SVC use the same grid for both.",
+             booktabs = TRUE, linesep = "")
+```
+
+```{r tab-hp-selected, echo=FALSE}
+hp_selected <- data.frame(
+  Model = c("Random Forest", "Gradient Boosting", "XGBoost", "SVR / SVC"),
+  Regression = c("n_est=200, depth=30, split=2, leaf=1",
+                 "n_est=200, lr=0.1, depth=5",
+                 "n_est=200, lr=0.057, depth=7",
+                 "kernel=rbf, C=10, gamma=scale"),
+  Classification = c("n_est=50, depth=20, split=5",
+                      "n_est=100, lr=0.2, depth=3",
+                      "n_est=200, lr=0.140, depth=3",
+                      "kernel=rbf, C=10, gamma=scale"),
+  check.names = FALSE
+)
+knitr::kable(hp_selected,
+             caption = "\\label{tab:hp-selected}Hyperparameter values selected by each search (n\\_est = n\\_estimators, lr = learning\\_rate, split = min\\_samples\\_split, leaf = min\\_samples\\_leaf, depth = max\\_depth).",
              booktabs = TRUE, linesep = "")
 ```
 
@@ -330,23 +376,23 @@ knitr::kable(clf_res,
 knitr::include_graphics("../figures/fig_clf_comparison.png")
 ```
 
-Table \ref{tab:clf-cv} shows the five-fold cross-validation numbers, computed on the training fold only. Random Forest and XGBoost tie for the highest mean accuracy (0.905), with Gradient Boosting close behind (0.901) — consistent with the test-set ranking. Standard deviations are small for most models; KNN is the most stable across folds (std = 0.004), while Gradient Boosting is, somewhat surprisingly, the least stable of the ensembles (std = 0.017) despite its strong mean — a reminder that a competitive cross-validated mean does not by itself guarantee low fold-to-fold variance.
+Table \ref{tab:clf-cv} shows the five-fold cross-validation numbers, scored on macro F1 and computed on the training fold only. XGBoost has the highest mean (0.800), with Gradient Boosting (0.792) and Random Forest (0.780) close behind — consistent with the test-set ranking, where XGBoost also leads. Standard deviations are small for most models; KNN is the most stable across folds (std = 0.007), while Gradient Boosting is, somewhat surprisingly, the least stable of the ensembles (std = 0.034) despite its strong mean — a reminder that a competitive cross-validated mean does not by itself guarantee low fold-to-fold variance.
 
 ```{r tab-clf-cv, echo=FALSE}
 cv_clf <- data.frame(
   Model = c("Logistic Regression", "Decision Tree", "Random Forest",
             "Gradient Boosting", "XGBoost", "SVC", "KNN", "Neural Network"),
-  Mean  = c(0.862, 0.855, 0.905, 0.901, 0.905, 0.867, 0.831, 0.878),
-  SD    = c(0.014, 0.010, 0.008, 0.017, 0.011, 0.013, 0.004, 0.015),
+  Mean  = c(0.666, 0.742, 0.780, 0.792, 0.800, 0.651, 0.678, 0.764),
+  SD    = c(0.022, 0.009, 0.023, 0.034, 0.021, 0.015, 0.007, 0.029),
   check.names = FALSE
 )
 knitr::kable(cv_clf,
-             caption = "\\label{tab:clf-cv}Five-fold cross-validation accuracy for all classification models, computed on the training fold only.",
+             caption = "\\label{tab:clf-cv}Five-fold cross-validation macro F1 for all classification models, computed on the training fold only.",
              booktabs = TRUE, linesep = "", digits = 3,
-             col.names = c("Model", "CV Accuracy mean", "CV Accuracy std"))
+             col.names = c("Model", "CV Macro F1 mean", "CV Macro F1 std"))
 ```
 
-```{r fig-clf-cv, fig.cap="\\label{fig:clf-cv}Five-fold cross-validation accuracy for all classification models (mean $\\pm$ standard deviation).", out.width="\\textwidth"}
+```{r fig-clf-cv, fig.cap="\\label{fig:clf-cv}Five-fold cross-validation macro F1 for all classification models (mean $\\pm$ standard deviation).", out.width="\\textwidth"}
 knitr::include_graphics("../figures/fig_clf_cv.png")
 ```
 
@@ -379,7 +425,7 @@ knitr::include_graphics("../figures/fig_confusion_matrix.png")
 
 Tree-based ensembles perform strongly here (Random Forest $R^2 = 0.969$, XGBoost $R^2 = 0.967$), which says a property's physical attributes really do carry a chronological signal, and one that machine learning can recover with high accuracy. What's more telling is how far behind the linear baselines stay ($R^2 \approx 0.89$): roughly 8 percentage points of variance in construction year simply isn't reachable by any linear combination of predictors. That points to threshold effects rather than a smooth relationship — which lines up with how building practice actually evolved. Materials and design standards didn't drift continuously; they shifted in fits and starts, driven by regulatory and technological step-changes, and a tree's decision boundaries can represent that kind of jump directly.
 
-The single Decision Tree is a useful cautionary case here. Its test-set RMSE (8.06 years, $R^2 = 0.926$) is clearly worse than both tree ensembles, and even worse than the Neural Network and KNN, despite being structurally similar to Random Forest. A single tree has only one chance to pick the best available split at each node, so it is more exposed to whichever predictor looks strongest in the training data at that point, including predictors that turn out to generalise poorly; bagging (Random Forest) and boosting (Gradient Boosting, XGBoost) both average over many such trees and are correspondingly more robust to this.
+The single Decision Tree is a useful cautionary case here. Its test-set RMSE (8.06 years, $R^2 = 0.926$) is clearly worse than all three tree ensembles, despite being structurally similar to Random Forest. A single tree has only one chance to pick the best available split at each node, so it is more exposed to whichever predictor looks strongest in the training data at that point, including predictors that turn out to generalise poorly; bagging (Random Forest) and boosting (Gradient Boosting, XGBoost) both average over many such trees and are correspondingly more robust to this.
 
 The default SVR falls behind the other non-linear methods (RMSE = 11.08, $R^2 = 0.860$), which suggests its default radial basis function kernel just isn't matched well to this dataset's structure. Tuning narrows that gap substantially (RMSE drops to 8.59, Table \ref{tab:reg-tuned}), so the shortfall looks more like a hyperparameter problem than a fundamental mismatch between margin-based methods and this task. Even tuned, though, the SVR stays well behind the ensembles — a structural disadvantage on this high-dimensional, mixed-type feature set that tuning alone doesn't fully close.
 
@@ -389,7 +435,7 @@ The neural network's cross-validation variance (RMSE = 14.15 $\pm$ 2.28) sits we
 
 The classification results show architectural typology can be recovered from geometric measurements with reasonable accuracy. XGBoost leads both before tuning (91.5\% accuracy, macro F1 = 0.833) and after (91.8\%, F1 = 0.837), which makes it the strongest model in either task once tuning is accounted for. The gap between accuracy and macro F1 tells the class-imbalance story again: the untuned SVC posts 87.9\% accuracy but a macro F1 of only 0.691, dragged down by weak recall (0.670) on the minority classes. Its precision (0.914) is high, though, which points to conservative decision boundaries — the model rarely commits to a minority-class prediction unless it's confident. Tuning fixes most of this (macro F1 climbs to 0.796, Table \ref{tab:clf-tuned}), confirming the untuned SVC's weakness was a hyperparameter problem rather than something inherent to margin-based classifiers on this feature set. The same pattern shows up in the confusion matrix (Figure \ref{fig:confusion}): Split-level properties, only 7.2\% of the dataset, get misclassified more often than any other class.
 
-There's a straightforward architectural reason behind the confusion between 1.5-story and Multi-story properties, and between Split-level and Single-story ones. Both 1.5-story and split-level homes sit in an awkward middle ground: a one-and-a-half story home has only a partial upper storey, and a split-level home has partial floors set at offset heights. The 30-feature geometric representation captures aggregate measurements — total area, room counts, basement footprint — but not the volumetric arrangement that would actually distinguish these forms from a full two-story layout. No model choice fixes that; the ceiling on accuracy is baked into the feature set itself.
+There's a straightforward architectural reason behind the confusion between 1.5-story and Multi-story properties, and between Split-level and Single-story ones. Both 1.5-story and split-level homes sit in an awkward middle ground: a one-and-a-half story home has only a partial upper storey, and a split-level home has partial floors set at offset heights. The 30-feature geometric representation captures aggregate measurements — total area, room counts, basement footprint — but not the volumetric arrangement that would actually distinguish these forms from a full two-story layout. No model choice fixes that; the ceiling on accuracy is baked into the feature set itself. This lines up with the EDA finding in Figure \ref{fig:clf-eda}: `2nd Flr SF` separates Multi-story from Single-story and Split-level cleanly, but 1.5-story properties sit in between with substantial overlap on both sides, which is exactly where the confusion matrix shows the models struggling most.
 
 ## Model Interpretability
 
@@ -401,7 +447,13 @@ knitr::include_graphics("../figures/fig_feature_importance.png")
 
 The linear models — Linear Regression and Ridge — offer full coefficient-level interpretability, but it costs roughly 5 RMSE years relative to Random Forest. Where interpretability is the binding constraint and approximate accuracy is good enough, Ridge Regression makes sense. Otherwise, the performance gap is large enough to justify going with Random Forest or XGBoost instead.
 
-The classification versions of Gradient Boosting and XGBoost offer the same kind of interpretability as their regression counterparts. The Decision Tree, despite lower accuracy, is the most transparent model of all — a single tree can be drawn out in full, and every prediction traced through an explicit sequence of attribute thresholds. Decision Tree accuracy (85.0\%) sits close enough to Logistic Regression's (87.9\%) that non-linear boundaries alone can't explain why the ensembles do better; variance reduction through aggregation is doing at least as much work.
+The classification versions of Gradient Boosting and XGBoost offer the same kind of interpretability as their regression counterparts. Extracting mean-decrease-in-impurity importance from the tuned Random Forest and XGBoost classifiers (Figure \ref{fig:clf-feat-imp}) confirms what the EDA in Figure \ref{fig:clf-eda} already suggested: `2nd Flr SF` is overwhelmingly the most important predictor for both models (31\% of total importance for Random Forest, 33\% for XGBoost), well ahead of `Total Bsmt SF`/`Half Bath` for Random Forest and `Half Bath`/`Low Qual Fin SF` for XGBoost. This is a case where the exploratory analysis and the model-internal importance agree, which is reassuring, but it is still a predictive association within these fitted models rather than a claim that second-floor area causes a particular architectural style — a house's typology is fixed at construction and `2nd Flr SF` is simply the clearest observable trace of it.
+
+```{r fig-clf-feat-imp, fig.cap="\\label{fig:clf-feat-imp}Mean-decrease-in-impurity feature importance for the tuned Random Forest and XGBoost classifiers (top 10 features each).", out.width="\\textwidth"}
+knitr::include_graphics("../figures/fig_clf_feature_importance.png")
+```
+
+The Decision Tree, despite lower accuracy, is the most transparent model of all — a single tree can be drawn out in full, and every prediction traced through an explicit sequence of attribute thresholds. Decision Tree accuracy (85.0\%) sits close enough to Logistic Regression's (87.9\%) that non-linear boundaries alone can't explain why the ensembles do better; variance reduction through aggregation is doing at least as much work.
 
 ## Practical Implications
 
@@ -412,6 +464,8 @@ Both tasks are motivated by the same practical situation: a property record with
 Both tasks are evaluated on data from one city over a four-year window. The chronological signal the regression model relies on reflects construction norms specific to Ames, Iowa, and there's no guarantee it would transfer to a different geographic or cultural setting. The four-class typology grouping used here is also just one reasonable choice among several — a different grouping would draw different class boundaries and could well change which classifiers struggle and where.
 
 Some of the geometric features kept in the classification set — garage size, basement finish level — are themselves correlated with construction era. That opens the possibility that the model is partly exploiting an indirect temporal signal rather than purely spatial information. Teasing the two apart would need a more controlled feature selection procedure, or a residualisation approach.
+
+The engineered `Year Remod/Add Delta` feature used in the regression task is also right-censored by construction: houses built close to the end of the observation window (2010) have simply had less time to be remodelled than older houses, regardless of their true renovation tendency. Part of this feature's predictive weight (Section \ref{model-interpretability}) may therefore reflect this censoring artefact rather than a genuine behavioural difference between older and newer housing stock.
 
 ## Conclusion
 

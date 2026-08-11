@@ -12,7 +12,7 @@ import pickle
 warnings.filterwarnings('ignore')
 
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, RandomForestClassifier
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix
@@ -252,15 +252,16 @@ plt.close()
 # ── Figure 9: Classification CV ───────────────────────────────────────────────
 # CV is computed on the training fold only (X_train_clf/y_train_clf in
 # classification.ipynb), so these values are independent of the test-set scores above.
+# Scored on macro F1 (not accuracy), consistent with the primary evaluation metric.
 print("Figure 9 ...")
-cv_a  = [0.8622, 0.8549, 0.9049, 0.9010, 0.9049, 0.8669, 0.8311, 0.8776]
-cv_as = [0.0141, 0.0097, 0.0081, 0.0170, 0.0112, 0.0125, 0.0041, 0.0153]
+cv_a  = [0.6656, 0.7416, 0.7799, 0.7920, 0.7996, 0.6509, 0.6775, 0.7638]
+cv_as = [0.0216, 0.0092, 0.0230, 0.0339, 0.0207, 0.0151, 0.0066, 0.0294]
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.barh(range(len(cnames)), cv_a, xerr=cv_as, color='#2ca25f', edgecolor='black',
         height=0.6, capsize=4, alpha=0.85)
 ax.set_yticks(range(len(cnames))); ax.set_yticklabels(cnames)
-ax.set_xlim(0.78, 0.95); ax.set_xlabel('CV Accuracy')
-ax.set_title('5-Fold Cross-Validation Accuracy — Classification\n(mean ± standard deviation)')
+ax.set_xlim(0.55, 0.90); ax.set_xlabel('CV Macro F1')
+ax.set_title('5-Fold Cross-Validation Macro F1 — Classification\n(mean ± standard deviation)')
 plt.tight_layout()
 plt.savefig('figures/fig_clf_cv.png', bbox_inches='tight')
 plt.close()
@@ -331,6 +332,31 @@ for ax, col in zip(axes, eda_cols):
     ax.tick_params(axis='x', rotation=20)
 plt.tight_layout()
 plt.savefig('figures/fig_clf_eda.png', bbox_inches='tight')
+plt.close()
+
+# ── Figure 13: Classification feature importance (tuned RF & XGBoost) ─────────
+# Tuned hyperparameters found in classification.ipynb's search (kept in sync manually).
+print("Figure 13: fitting tuned RF and XGBoost classifiers for feature importance ...")
+clf_fi_models = {
+    'Random Forest': RandomForestClassifier(random_state=42, n_estimators=50,
+                                             min_samples_split=5, max_depth=20),
+    'XGBoost':       XGBClassifier(random_state=42, eval_metric='mlogloss', verbosity=0,
+                                    n_estimators=200, max_depth=3, learning_rate=0.1396),
+}
+fig, axes = plt.subplots(1, 2, figsize=(11, 5))
+for ax, (name, model) in zip(axes, clf_fi_models.items()):
+    pipe = Pipeline([('pre', preprocessor_clf), ('m', clone(model))])
+    pipe.fit(X_train_clf, y_train_clf_enc)
+    feat_names  = pipe.named_steps['pre'].get_feature_names_out()
+    importances = pipe.named_steps['m'].feature_importances_
+    top_idx     = np.argsort(importances)[-10:]
+    ax.barh(range(len(top_idx)), importances[top_idx], color='steelblue', edgecolor='black')
+    ax.set_yticks(range(len(top_idx)))
+    ax.set_yticklabels([feat_names[i] for i in top_idx])
+    ax.set_xlabel('Importance (mean decrease in impurity)')
+    ax.set_title(f'{name} (tuned)')
+plt.tight_layout()
+plt.savefig('figures/fig_clf_feature_importance.png', bbox_inches='tight')
 plt.close()
 
 print(f"\nDone. {len(os.listdir('figures'))} figures saved to figures/")
