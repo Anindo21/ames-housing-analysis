@@ -226,7 +226,6 @@ __marimo__/
 
 # Generated LaTeX and PDF build artefacts
 *.tex
-*.pdf
 *.bbl
 *.bcf
 *.blg
