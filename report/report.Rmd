@@ -254,6 +254,18 @@ knitr::kable(hp_selected,
              booktabs = TRUE, linesep = "")
 ```
 
+Each abbreviation in Table \ref{tab:hp-selected} refers to a hyperparameter that controls how the corresponding model is built or trained:
+
+- **n_est (`n_estimators`)**: the number of individual trees (Random Forest) or boosting stages (Gradient Boosting, XGBoost) fitted and combined into the final ensemble. More estimators generally reduce variance and improve stability, at the cost of longer training time and, past a certain point, diminishing returns.
+- **lr (`learning_rate`)**: applies only to the boosting methods (Gradient Boosting, XGBoost) and scales the contribution of each successive tree to the overall prediction. A smaller learning rate makes learning more gradual and typically more robust to overfitting, but usually needs a larger `n_estimators` to compensate; a larger learning rate learns faster but risks overshooting.
+- **split (`min_samples_split`)**: the minimum number of training observations a node must contain before it is allowed to split further. Raising this value forces simpler, shallower trees and limits overfitting to small, idiosyncratic subsets of the data.
+- **leaf (`min_samples_leaf`)**: the minimum number of observations required in each leaf (terminal) node. Similar in spirit to `min_samples_split`, it prevents the model from creating leaves based on only a handful of training rows, which would generalise poorly.
+- **depth (`max_depth`)**: the maximum number of splits allowed from the root of a tree to any leaf. It caps how complex an individual tree can become; shallower trees are less prone to overfitting but may underfit if set too low.
+
+For the SVR/SVC models, `kernel=rbf` selects the radial basis function kernel to capture non-linear relationships, `C` is the regularisation strength (a smaller `C` allows a wider margin and more misclassification/error tolerance, while a larger `C` fits the training data more tightly), and `gamma` controls how far the influence of a single training example reaches (`scale`, the value selected here, sets it automatically based on the number of features and their variance).
+
+Broadly, the values selected reflect the same trade-off across models: enough estimators and depth to capture the signal in the data, balanced against the split/leaf constraints and (for boosting) the learning rate needed to keep individual trees, and the ensemble as a whole, from overfitting to the training fold.
+
 # Results
 
 ## Regression
@@ -381,6 +393,8 @@ Figure \ref{fig:confusion} shows the confusion matrix for the default, pre-tunin
 ```{r fig-confusion, fig.cap="\\label{fig:confusion}Confusion matrix for the default (pre-tuning) XGBoost classifier on the held-out test set. Rows represent actual typology classes; columns represent predicted classes.", out.width="0.7\\textwidth"}
 knitr::include_graphics("../figures/fig_confusion_matrix.png")
 ```
+
+Each row of the matrix corresponds to one true typology (Single-story, 1.5-story, Multi-story, or Split-level), and each column to the typology the model predicted; the diagonal cells count correct predictions, while off-diagonal cells count misclassifications between specific class pairs. The largest diagonal counts fall on Single-story and Multi-story, the two most frequent classes, confirming the strong recall reported for them in Table \ref{tab:clf-results}. Off-diagonal mass concentrates on the 1.5-story/Multi-story boundary and, more heavily, on Split-level, which is confused with both Single-story and Multi-story more often than it is correctly identified, reflecting the class imbalance and structural overlap between these categories.
 
 # Discussion and Conclusion
 
