@@ -254,6 +254,16 @@ knitr::kable(hp_selected,
              booktabs = TRUE, linesep = "")
 ```
 
+Each abbreviation in Table \ref{tab:hp-selected} refers to a hyperparameter that controls how the corresponding model is built or trained:
+
+- **n_est (`n_estimators`)**: number of trees (Random Forest) or boosting stages (Gradient Boosting, XGBoost) combined into the ensemble.
+- **lr (`learning_rate`)**: how much each successive boosting tree contributes to the final prediction (Gradient Boosting, XGBoost only).
+- **split (`min_samples_split`)**: minimum observations a node must have before it can be split further.
+- **leaf (`min_samples_leaf`)**: minimum observations required in each leaf (terminal) node.
+- **depth (`max_depth`)**: maximum number of splits from root to leaf, capping tree complexity.
+
+For SVR/SVC, `kernel=rbf` captures non-linear relationships, `C` is the regularisation strength (trade-off between margin width and training error), and `gamma` (set to `scale`) controls how far a single training example's influence reaches.
+
 # Results
 
 ## Regression
@@ -381,6 +391,8 @@ Figure \ref{fig:confusion} shows the confusion matrix for the default, pre-tunin
 ```{r fig-confusion, fig.cap="\\label{fig:confusion}Confusion matrix for the default (pre-tuning) XGBoost classifier on the held-out test set. Rows represent actual typology classes; columns represent predicted classes.", out.width="0.7\\textwidth"}
 knitr::include_graphics("../figures/fig_confusion_matrix.png")
 ```
+
+Each row of the matrix corresponds to one true typology (Single-story, 1.5-story, Multi-story, or Split-level), and each column to the typology the model predicted; the diagonal cells count correct predictions, while off-diagonal cells count misclassifications between specific class pairs. The largest diagonal counts fall on Single-story and Multi-story, the two most frequent classes, confirming the strong recall reported for them in Table \ref{tab:clf-results}. Off-diagonal mass concentrates on the 1.5-story/Multi-story boundary and, more heavily, on Split-level, which is confused with both Single-story and Multi-story more often than it is correctly identified, reflecting the class imbalance and structural overlap between these categories.
 
 # Discussion and Conclusion
 
