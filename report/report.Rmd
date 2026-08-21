@@ -91,13 +91,7 @@ knitr::include_graphics("../figures/fig_housestyle_dist.png")
 
 ## Predictor Relationships
 
-To find out which features actually carry a temporal signal, Pearson correlations were computed between every numerical predictor and Year Built; Figure \ref{fig:correlation} plots the 12 strongest in each direction. Garage Year Built comes out on top ($r = 0.83$), unsurprising since garages are usually built alongside the house. Overall Quality follows at a more modest $r = 0.60$, tracking the shift toward higher-grade materials in newer construction. Ground Living Area technically makes the top twelve as well, but its correlation is weak ($r = 0.24$): it earns its place by rank, not by strength. On the negative side, older residential conventions show up in features like Enclosed Porch area and Overall Condition.
-
-```{r fig-correlation, fig.cap="\\label{fig:correlation}Pearson correlation between numerical predictors and Year Built. Green bars indicate positive correlations; red bars indicate negative correlations. The 12 strongest in each direction are shown.", out.width="0.85\\textwidth"}
-knitr::include_graphics("../figures/fig_correlation.png")
-```
-
-Scatter plots of the six strongest predictors (Figure \ref{fig:scatter}, Appendix) back this up. Garage Year Built tracks Year Built almost linearly. Overall Quality moves in visible steps rather than a smooth gradient, which fits with how building standards tend to get revised periodically rather than continuously. And the Year Remod/Add Delta feature (years between construction and last remodel) piles up at zero, simply because most properties in the sample have never been remodelled.
+Pearson correlations between numerical predictors and Year Built (Figure \ref{fig:correlation}, Appendix) identify Garage Year Built as the strongest ($r = 0.83$), unsurprising since garages are usually built alongside the house, followed by Overall Quality ($r = 0.60$), tracking the shift toward higher-grade materials in newer construction. Ground Living Area makes the top twelve by rank only ($r = 0.24$). Older residential conventions show up on the negative side, in features like Enclosed Porch area and Overall Condition.
 
 ## Classification Predictors
 
@@ -256,15 +250,13 @@ knitr::kable(hp_selected,
 
 Each abbreviation in Table \ref{tab:hp-selected} refers to a hyperparameter that controls how the corresponding model is built or trained:
 
-- **n_est (`n_estimators`)**: the number of individual trees (Random Forest) or boosting stages (Gradient Boosting, XGBoost) fitted and combined into the final ensemble. More estimators generally reduce variance and improve stability, at the cost of longer training time and, past a certain point, diminishing returns.
-- **lr (`learning_rate`)**: applies only to the boosting methods (Gradient Boosting, XGBoost) and scales the contribution of each successive tree to the overall prediction. A smaller learning rate makes learning more gradual and typically more robust to overfitting, but usually needs a larger `n_estimators` to compensate; a larger learning rate learns faster but risks overshooting.
-- **split (`min_samples_split`)**: the minimum number of training observations a node must contain before it is allowed to split further. Raising this value forces simpler, shallower trees and limits overfitting to small, idiosyncratic subsets of the data.
-- **leaf (`min_samples_leaf`)**: the minimum number of observations required in each leaf (terminal) node. Similar in spirit to `min_samples_split`, it prevents the model from creating leaves based on only a handful of training rows, which would generalise poorly.
-- **depth (`max_depth`)**: the maximum number of splits allowed from the root of a tree to any leaf. It caps how complex an individual tree can become; shallower trees are less prone to overfitting but may underfit if set too low.
+- **n_est (`n_estimators`)**: number of trees (Random Forest) or boosting stages (Gradient Boosting, XGBoost) combined into the ensemble.
+- **lr (`learning_rate`)**: how much each successive boosting tree contributes to the final prediction (Gradient Boosting, XGBoost only).
+- **split (`min_samples_split`)**: minimum observations a node must have before it can be split further.
+- **leaf (`min_samples_leaf`)**: minimum observations required in each leaf (terminal) node.
+- **depth (`max_depth`)**: maximum number of splits from root to leaf, capping tree complexity.
 
-For the SVR/SVC models, `kernel=rbf` selects the radial basis function kernel to capture non-linear relationships, `C` is the regularisation strength (a smaller `C` allows a wider margin and more misclassification/error tolerance, while a larger `C` fits the training data more tightly), and `gamma` controls how far the influence of a single training example reaches (`scale`, the value selected here, sets it automatically based on the number of features and their variance).
-
-Broadly, the values selected reflect the same trade-off across models: enough estimators and depth to capture the signal in the data, balanced against the split/leaf constraints and (for boosting) the learning rate needed to keep individual trees, and the ensemble as a whole, from overfitting to the training fold.
+For SVR/SVC, `kernel=rbf` captures non-linear relationships, `C` is the regularisation strength (trade-off between margin width and training error), and `gamma` (set to `scale`) controls how far a single training example's influence reaches.
 
 # Results
 
@@ -457,6 +449,10 @@ Methodologically, three things keep coming up here that apply well beyond this d
 # Appendix {-}
 
 The figures and table below supplement the results discussed in the main text; the accompanying test-set and cross-validation tables report the same information numerically.
+
+```{r fig-correlation, fig.cap="\\label{fig:correlation}Pearson correlation between numerical predictors and Year Built. Green bars indicate positive correlations; red bars indicate negative correlations. The 12 strongest in each direction are shown.", out.width="0.85\\textwidth"}
+knitr::include_graphics("../figures/fig_correlation.png")
+```
 
 ```{r fig-scatter, fig.cap="\\label{fig:scatter}Scatter plots of six key numerical predictors against Year Built. Each point represents one property.", out.width="\\textwidth"}
 knitr::include_graphics("../figures/fig_scatter_predictors.png")
