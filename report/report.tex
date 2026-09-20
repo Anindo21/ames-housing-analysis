@@ -61,7 +61,8 @@
 \hypersetup{breaklinks=true,
             bookmarks=true,
             pdfauthor={Rezaul Hoque, Sarah Al-Talal},
-            pdftitle={Predicting Residential Construction Year and Classifying Architectural Typology},
+            pdftitle={Predicting Residential Construction Year and
+Classifying Architectural Typology},
             colorlinks=true,
             citecolor=blue,
             urlcolor=blue,
@@ -131,16 +132,6 @@ Architectural Typology}
 	\usepackage[nopatch=footnote]{microtype}
 	\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
 }{}
-%\makeatletter
-%\providecommand{\pandocbounded}[1]{%
-%  \begin{minipage}[t]{\linewidth}%
-%    \def\maxwidth{\linewidth}%
-%    \def\maxheight{\textheight}%
-%    \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}%
-%    #1%
-%  \end{minipage}%
-%}
-%\makeatother
 
 % escape pandocbounded
 \newcommand{\pandocbounded}[1]{#1}
@@ -177,9 +168,8 @@ Architectural Typology}\\
   Rezaul Hoque, Sarah Al-Talal\\
   \end{center}
   \vspace{4cm}
-  
- 
-  
+
+
 
   \noindent\begin{minipage}[t]{0.5\textwidth}
   \IfLanguageName{english}{Matriculation Number:}{Matrikelnummer}
@@ -210,18 +200,12 @@ Architectural Typology}\\
   \end{minipage}
 
   \noindent\begin{minipage}[t]{0.5\textwidth}
-  Semester:
+  \IfLanguageName{english}{Semester:}{Semester:}
   \end{minipage}
   \begin{minipage}[t]{0.7\textwidth}
-  \hspace{1cm}\IfLanguageName{english}{\nth{1} Semester}{1. Fachsemester}
+  \hspace{1cm}Summer Semester
   \end{minipage}
 
-  \noindent\begin{minipage}[t]{0.5\textwidth}
-  \IfLanguageName{english}{Graduation (est.):}{Vsl. Studienabschluss:}
-  \end{minipage}
-  \begin{minipage}[t]{0.7\textwidth}
-  \hspace{1cm}Summer Term 2026
-  \end{minipage}
 
   \noindent\begin{minipage}[t]{0.5\textwidth}
   \IfLanguageName{english}{Deadline:}{Abgabefrist:}
@@ -237,27 +221,26 @@ Architectural Typology}\\
 \restoregeometry
 
 
-\pagenumbering{Roman} 
+\pagenumbering{Roman}
 {
 \hypersetup{linkcolor=black}
 \setcounter{tocdepth}{3}
 \tableofcontents
 }
 
-
-
 \newpage
 \listoftables
 \newpage
 \listoffigures
 \newpage
-\pagenumbering{arabic} 
+\pagenumbering{arabic}
+
 \section{Introduction}\label{introduction}
 
 The Ames Housing Dataset \autocite{DeCock2011} records 2,930 residential
 property sales in Ames, Iowa between 2006 and 2010, described across 82
 variables spanning physical dimensions, material quality, basement and
-garage attributes, and neighbourhood classification. Most work on this
+garage attributes and neighbourhood classification. Most work on this
 dataset points toward one target: sale price. This study points
 somewhere else: toward the structural and architectural information
 already sitting in each property's physical record.
@@ -267,20 +250,30 @@ been applied to the Ames dataset and comparable sources to forecast sale
 price directly and to work out which housing characteristics move the
 market most \autocite{ChoyHo2023,HoTangWong2020,JinXu2025}.
 
-Two prediction problems drive the analysis here. The first asks whether
-a property's original construction year can be estimated from its
-physical attributes and quality ratings alone, with no temporal metadata
-and no market data in sight. The working assumption is that construction
-era leaves a trace: in material choices, room configurations, and the
-amenities that came and went across the twentieth century. The second is
-a four-class classification problem: predicting whether a property is
-single-story, multi-story, one-and-a-half story, or split-level, based
-purely on its spatial and structural measurements. Here the question is
-simpler: which geometric features actually separate one residential form
-from another. Section \ref{practical-implications} returns to why
-recovering either quantity is useful in practice, once the two
-attributes that would normally supply this information (a construction
-date and a style label) cannot be assumed to already be on file.
+Two prediction problems drive the analysis here, each built around its
+own research question.
+
+\textbf{RQ1 (Regression: Predicting the Age of a House):} How accurately
+can a machine learning model predict a residential property's original
+construction year based solely on its current structural materials,
+layout configuration and quality ratings, with no temporal metadata and
+no market data in sight? The working assumption is that construction era
+leaves a trace: in material choices, room configurations and the
+amenities that came and went across the twentieth century.
+
+\textbf{RQ2 (Classification: Automated Architectural Typology
+Inference):} Can machine learning algorithms accurately infer a
+residential property's architectural typology from its measurable
+spatial footprint, structural scale metrics and internal layout
+configuration alone, and which physical attributes serve as the most
+discriminative geometric boundaries between single-story, multi-story,
+one-and-a-half story and split-level residential typologies within the
+Ames, Iowa housing stock?
+
+Section \ref{practical-implications} returns to why recovering either
+quantity is useful in practice, once the two attributes that would
+normally supply this information (a construction date and a style label)
+cannot be assumed to already be on file.
 
 The two tasks are kept independent, though they share a single
 preprocessing pipeline. Nine regression algorithms and eight classifiers
@@ -288,7 +281,7 @@ are compared, chosen to span the range from interpretable linear models
 to opaque ensembles. Predictive performance matters throughout, but so
 does a question that gets asked less often: how much can each model
 class actually tell us about why it made a given prediction? All
-preprocessing, modelling, and evaluation described below was implemented
+preprocessing, modelling and evaluation described below was implemented
 in Python (scikit-learn, XGBoost, category-encoders); this R Markdown
 document is used only to report and discuss those results.
 
@@ -297,10 +290,9 @@ document is used only to report and discuss those results.
 The dataset used here contains 2,930 residential property observations
 across 82 variables, two of which (\texttt{Order}, \texttt{PID}) are
 administrative identifiers rather than real predictors. What remains
-covers a wide range of structural, spatial, and qualitative
-characteristics for each property sold in Ames, Iowa; there is enough
-variety, in fact, that the dataset lends itself naturally to supervised
-learning.
+covers structural, spatial and qualitative characteristics for each
+property sold in Ames, Iowa; there is enough variety, in fact, that the
+dataset lends itself naturally to supervised learning.
 
 Roughly half the variables are numerical (lot area, above-ground living
 area, garage capacity, construction year, basement size), and the rest
@@ -362,9 +354,9 @@ survived than anything else. Figure \ref{fig:yearbuilt} shows the shape.
 \textbf{House Style.} The raw dataset records eight architectural style
 codes, which are collapsed here into four typology classes: Single-story
 (n = 1,481; 50.5\%), Multi-story (n = 905; 30.9\%), 1.5-story (n = 333;
-11.4\%), and Split-level (n = 211; 7.2\%). The imbalance is hard to
-miss: Single-story alone outnumbers the next largest class by more than
-two to one, and it shapes which evaluation metric makes sense for
+11.4\%) and Split-level (n = 211; 7.2\%). The imbalance is hard to miss:
+Single-story alone outnumbers the next largest class by more than two to
+one, and it shapes which evaluation metric makes sense for
 classification, a point picked up in Section \ref{model-selection}.
 Figure \ref{fig:housestyle} shows the class counts before and after
 consolidation.
@@ -388,6 +380,12 @@ tracking the shift toward higher-grade materials in newer construction.
 Ground Living Area makes the top twelve by rank only (\(r = 0.24\)).
 Older residential conventions show up on the negative side, in features
 like Enclosed Porch area and Overall Condition.
+\texttt{Garage\ Yr\ Blt}'s strong showing here is exactly why it is
+excluded from the regression feature set (Section
+\ref{encoding-and-scaling}): it is itself another construction-date
+field, and keeping it as a predictor would run against RQ1's framing of
+recovering construction year from physical attributes alone, with no
+other temporal metadata in play.
 
 \subsection{Classification Predictors}\label{classification-predictors}
 
@@ -422,7 +420,7 @@ simply co-occurs with these measurements.
 \subsection{Missing Value Handling}\label{missing-value-handling}
 
 Four columns were dropped before any modelling began: \texttt{Alley},
-\texttt{Pool\ QC}, \texttt{Fence}, and \texttt{Misc\ Feature}, all
+\texttt{Pool\ QC}, \texttt{Fence} and \texttt{Misc\ Feature}, all
 missing more than 70\% of their values. Imputing at that level of
 missingness would mean inventing most of a variable's distribution,
 which defeats the purpose. That left 78 variables. Rows missing either
@@ -459,7 +457,7 @@ classification target without ever acting as a predictor for regression.
 
 \subsection{Encoding and Scaling}\label{encoding-and-scaling}
 
-Features were split into five groups, each handled differently. Sixteen
+Features were split into five groups, each handled differently. Fourteen
 roughly symmetric numerical features went through a Yeo-Johnson power
 transform \autocite{YeoJohnson2000} to iron out residual skew, then
 standardisation to zero mean and unit variance. Seven more skewed
@@ -487,6 +485,19 @@ set to avoid handing the model an indirect encoding of its own target,
 in addition to being excluded from the classification feature set for
 the related reason described below.
 
+\texttt{Garage\ Yr\ Blt} is excluded from the regression feature set for
+a different reason again. It is not derived from \texttt{Year\ Built}
+the way \texttt{Year\ Remod/Add\ Delta} is, so it is not target leakage
+in the strict sense, but it is itself another construction-date field,
+correlating with \texttt{Year\ Built} at \(r = 0.83\) (Section
+\ref{predictor-relationships}) almost entirely because garages are
+normally built alongside the house. RQ1 frames this task as recovering
+construction year from structural, material and quality attributes with
+no other temporal metadata in play; keeping \texttt{Garage\ Yr\ Blt} as
+a predictor would let the models lean on a second, near-duplicate date
+field instead. It was already excluded from the classification feature
+set for the same reason (see Train/Test Split below).
+
 This five-group scheme is used for the regression feature set. The
 classification feature set is deliberately simpler: since it is
 restricted to the 30 numeric, non-temporal predictors described below,
@@ -495,8 +506,8 @@ median-impute-then-standardise step is used for all 30 features rather
 than the skew-dependent Yeo-Johnson treatment. The simplification is
 reasonable here because five of the eight models compared for
 classification (the tree ensembles and the two baselines) are either
-scale-invariant or, in the case of Logistic Regression, SVC, and the
-MLP, still benefit from standardisation even without an explicit skew
+scale-invariant or, in the case of Logistic Regression, SVC and the MLP,
+still benefit from standardisation even without an explicit skew
 correction.
 
 \subsection{Leakage-Safe Pipeline}\label{leakage-safe-pipeline}
@@ -504,7 +515,7 @@ correction.
 All five sub-pipelines were assembled into a single
 \texttt{ColumnTransformer}, which sits inside a scikit-learn
 \texttt{Pipeline} \autocite{Pedregosa2011} alongside each estimator.
-That way, every imputer, scaler, and encoder is fitted on training data
+That way, every imputer, scaler and encoder is fitted on training data
 only. Fitting any of these before the train/test split is a shortcut
 some analyses still take, but it introduces leakage: the imputer ends up
 borrowing test-set values into its training medians, and the scaler
@@ -520,10 +531,13 @@ typology classes proportionally represented in both folds, worth doing
 given how small the Split-level class already is (n = 211).
 
 The classification feature set is not identical to the regression one.
-Temporal predictors (\texttt{Year\ Built}, \texttt{Garage\ Yr\ Blt},
-\texttt{Year\ Remod/Add\ Delta}) and \texttt{MS\ SubClass} (excluded
-from both feature sets for the reasons given in Chapter 3.3) were left
-out, along with all remaining categorical predictors (neighbourhood,
+\texttt{Garage\ Yr\ Blt} and \texttt{MS\ SubClass} are excluded from
+both feature sets, for the reasons given in Chapter 3.3;
+\texttt{Year\ Built} is simply the regression target and so is never a
+candidate predictor; and \texttt{Year\ Remod/Add\ Delta} is
+regression-only leakage and never enters the classification feature set
+either. What is unique to the classification feature set is the further
+exclusion of all remaining categorical predictors (neighbourhood,
 exterior material, quality ratings, etc.); the classification task uses
 only the 30 remaining numeric, geometric and structural features. Class
 labels were encoded as integers for all eight classifiers, for
@@ -537,7 +551,7 @@ for reporting.
 
 Nine algorithms were trained, spanning a broad spectrum of learning
 strategies. Table \ref{tab:reg-models} lays out the model classes, their
-key properties, and why each one was included.
+key properties and why each one was included.
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1698}}
@@ -587,7 +601,7 @@ capacity \\
 \end{longtable}
 
 Polynomial Regression was tried first and dropped. A degree-2 expansion
-of the 149 post-encoding features balloons into a design matrix with
+of the 147 post-encoding features balloons into a design matrix with
 roughly 11,000 columns (about five times the number of training
 observations, 2,344), at which point the ordinary least squares solution
 stops being unique and the fit becomes numerically unstable. Ridge
@@ -649,7 +663,7 @@ capacity \\
 \end{longtable}
 
 Random Forest \autocite{Breiman2001}, Gradient Boosting
-\autocite{Friedman2001}, and XGBoost \autocite{ChenGuestrin2016} are the
+\autocite{Friedman2001} and XGBoost \autocite{ChenGuestrin2016} are the
 ensemble methods; Support Vector Classifier \autocite{Cortes1995} is the
 kernel-based approach. The single Decision Tree follows the CART
 formulation \autocite{BreimanEtAl1984}; K-Nearest Neighbours follows the
@@ -714,7 +728,7 @@ making up 50.5\% of observations, a model that just guesses the majority
 class every time would already hit roughly 50\% accuracy without
 learning anything. Macro F1 averages precision and recall across classes
 with equal weight, so poor performance on a minority class counts just
-as much as poor performance on the majority. Accuracy, macro precision,
+as much as poor performance on the majority. Accuracy, macro precision
 and macro recall are reported alongside it.
 
 \subsection{Cross-Validation and Hyperparameter
@@ -731,10 +745,10 @@ the two are genuinely independent estimates rather than the same rows
 being reused.
 
 Hyperparameter tuning was applied to four models per task: the three
-tree ensembles (Random Forest, Gradient Boosting, and XGBoost), and the
+tree ensembles (Random Forest, Gradient Boosting and XGBoost) and the
 Support Vector Regressor/Classifier. The three ensembles were selected
 on the basis of strong default cross-validated performance relative to
-the linear, kernel-based, and instance-based alternatives (Tables
+the linear, kernel-based and instance-based alternatives (Tables
 \ref{tab:reg-cv} and \ref{tab:clf-cv}). The SVR/SVC was included despite
 comparatively weak default performance, specifically to test whether
 this shortfall reflected a hyperparameter mismatch (for instance, an
@@ -787,7 +801,7 @@ Random Forest & n\_est=200, depth=30, split=2, leaf=1 & n\_est=50,
 depth=20, split=5 \\
 Gradient Boosting & n\_est=200, lr=0.1, depth=5 & n\_est=100, lr=0.2,
 depth=3 \\
-XGBoost & n\_est=200, lr=0.057, depth=7 & n\_est=200, lr=0.140,
+XGBoost & n\_est=200, lr=0.140, depth=3 & n\_est=200, lr=0.140,
 depth=3 \\
 SVR / SVC & kernel=rbf, C=10, gamma=scale & kernel=rbf, C=10,
 gamma=scale \\
@@ -820,7 +834,7 @@ trained:
 
 For SVR/SVC, \texttt{kernel=rbf} captures non-linear relationships,
 \texttt{C} is the regularisation strength (trade-off between margin
-width and training error), and \texttt{gamma} (set to \texttt{scale})
+width and training error) and \texttt{gamma} (set to \texttt{scale})
 controls how far a single training example's influence reaches.
 
 \section{Results}\label{results}
@@ -828,12 +842,12 @@ controls how far a single training example's influence reaches.
 \subsection{Regression}\label{regression}
 
 Table \ref{tab:reg-results} lays out test-set performance for all nine
-models. Random Forest comes out on top (RMSE = 5.18 years, \(R^2\) =
-0.969), with XGBoost close behind (RMSE = 5.36, \(R^2\) = 0.967). All
-three ensemble methods leave the linear baselines well behind (those
-plateau around \(R^2 = 0.89\)), which says something important:
-recovering the full chronological signal takes more than a linear
-combination of predictors.
+models. Gradient Boosting comes out on top (RMSE = 8.83 years, \(R^2\) =
+0.911), with Random Forest (RMSE = 9.08, \(R^2\) = 0.906) and XGBoost
+(RMSE = 9.32, \(R^2\) = 0.901) close behind. All three ensemble methods
+leave the linear baselines well behind (those plateau around
+\(R^2 = 0.86\)), which says something important: recovering the full
+chronological signal takes more than a linear combination of predictors.
 
 \begin{longtable}[]{@{}lrrr@{}}
 \caption{\label{tab:reg-results}Regression results on the held-out test
@@ -848,15 +862,15 @@ Model & MAE (yrs) & RMSE (yrs) & R\textsuperscript{2} \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Linear Regression & 7.14 & 9.77 & 0.891 \\
-Ridge Regression & 7.07 & 9.68 & 0.893 \\
-Decision Tree & 3.04 & 8.06 & 0.926 \\
-Random Forest & 2.23 & 5.18 & 0.969 \\
-Gradient Boosting & 3.57 & 6.26 & 0.955 \\
-XGBoost & 2.70 & 5.36 & 0.967 \\
-SVR & 6.81 & 11.08 & 0.860 \\
-KNN & 4.89 & 8.44 & 0.919 \\
-Neural Network & 4.74 & 8.42 & 0.919 \\
+Linear Regression & 8.00 & 10.99 & 0.862 \\
+Ridge Regression & 8.00 & 10.95 & 0.863 \\
+Decision Tree & 6.80 & 12.22 & 0.830 \\
+Random Forest & 4.84 & 9.08 & 0.906 \\
+Gradient Boosting & 5.55 & 8.83 & 0.911 \\
+XGBoost & 5.43 & 9.32 & 0.901 \\
+SVR & 8.48 & 13.09 & 0.805 \\
+KNN & 5.45 & 9.56 & 0.896 \\
+Neural Network & 6.77 & 10.53 & 0.874 \\
 \end{longtable}
 
 Figure \ref{fig:reg-comp} (Appendix) provides a visual comparison of
@@ -864,15 +878,15 @@ these results; the gap between tree ensembles and the linear/kernel
 baselines is easy to see at a glance.
 
 The five-fold cross-validation results in Table \ref{tab:reg-cv} back up
-the test-set ranking for the most part. Random Forest (\(\pm 0.36\)) and
-Gradient Boosting (\(\pm 0.17\)) both hold steady across folds. The
-Neural Network doesn't: its CV variance (RMSE = 14.15 \(\pm\) 2.28) is
-the highest of any model here, well above the 8.42 it managed on the
+the test-set ranking for the most part. Random Forest (\(\pm 0.52\)) and
+Gradient Boosting (\(\pm 0.61\)) both hold steady across folds. The
+Neural Network doesn't: its CV variance (RMSE = 14.85 \(\pm\) 1.99) is
+the highest of any model here, well above the 10.53 it managed on the
 single test-set split. That gap points to a model whose performance
 depends heavily on how the data happens to be divided, probably because
 the default architecture struggles against the uneven temporal spread of
 observations across folds. The Decision Tree is also noticeably less
-stable here (std = 0.97) than either tree ensemble, consistent with a
+stable here (std = 0.78) than either tree ensemble, consistent with a
 single tree being more exposed to whichever splits happen to be
 available in a given fold.
 
@@ -890,15 +904,15 @@ Model & CV RMSE mean (yrs) & CV RMSE std \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Linear Regression & 10.25 & 0.58 \\
-Ridge Regression & 10.14 & 0.59 \\
-Decision Tree & 8.73 & 0.97 \\
-Random Forest & 5.64 & 0.36 \\
-Gradient Boosting & 6.21 & 0.17 \\
-XGBoost & 5.95 & 0.26 \\
-SVR & 12.94 & 1.01 \\
-KNN & 9.03 & 0.84 \\
-Neural Network & 14.15 & 2.28 \\
+Linear Regression & 11.31 & 0.65 \\
+Ridge Regression & 11.22 & 0.69 \\
+Decision Tree & 13.00 & 0.78 \\
+Random Forest & 9.65 & 0.52 \\
+Gradient Boosting & 9.73 & 0.61 \\
+XGBoost & 9.58 & 0.97 \\
+SVR & 15.43 & 0.99 \\
+KNN & 10.81 & 0.97 \\
+Neural Network & 14.85 & 1.99 \\
 \end{longtable}
 
 Figure \ref{fig:reg-cv} (Appendix) shows these results with error bars,
@@ -906,12 +920,12 @@ and the instability in the linear models and the neural network is
 obvious at a glance.
 
 Figure \ref{fig:pred-actual} plots predicted against actual construction
-year for the four strongest models. Random Forest and XGBoost cluster
-tightly around the perfect-prediction diagonal with no systematic over-
-or under-prediction anywhere in the year range. Ridge Regression
-scatters more widely, especially for properties built before 1940,
-exactly where a linear model would be expected to struggle with rare
-historical patterns.
+year for the four strongest models. Random Forest, Gradient Boosting and
+XGBoost cluster fairly tightly around the perfect-prediction diagonal
+with no systematic over- or under-prediction anywhere in the year range.
+Ridge Regression scatters more widely, especially for properties built
+before 1940, exactly where a linear model would be expected to struggle
+with rare historical patterns.
 
 \begin{figure}[htbp]
 
@@ -923,12 +937,15 @@ historical patterns.
 \end{figure}
 
 Tuning affects the four searched models unevenly (Table
-\ref{tab:reg-tuned}): Random Forest is essentially unchanged, Gradient
-Boosting and SVR both improve substantially, and XGBoost gains modestly
-enough that its tuned RMSE sits practically level with Random Forest's.
-Random Forest's defaults, it seems, were already close to optimal for
-this feature set; the other three had more room for a targeted search to
-help.
+\ref{tab:reg-tuned}): XGBoost improves the most, moving from third among
+the default ensembles (RMSE = 9.32) to the strongest model overall after
+search (RMSE = 8.40, \(R^2\) = 0.920); Gradient Boosting also improves,
+though more modestly (8.83 \(\rightarrow\) 8.60); Random Forest is
+essentially unchanged (9.08 \(\rightarrow\) 9.11); and SVR improves
+substantially (13.09 \(\rightarrow\) 9.55) but remains well behind the
+tree ensembles even after tuning. Random Forest's defaults, it seems,
+were already close to optimal for this feature set; the other three had
+more room for a targeted search to help.
 
 \begin{longtable}[]{@{}lrrr@{}}
 \caption{\label{tab:reg-tuned}Regression results on the held-out test
@@ -946,10 +963,10 @@ Model & MAE (yrs) & RMSE (yrs) & R\textsuperscript{2} \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Random Forest & 2.25 & 5.23 & 0.969 \\
-Gradient Boosting & 2.71 & 5.37 & 0.967 \\
-XGBoost & 2.43 & 5.25 & 0.969 \\
-SVR & 4.94 & 8.59 & 0.916 \\
+Random Forest & 4.86 & 9.11 & 0.905 \\
+Gradient Boosting & 5.02 & 8.60 & 0.916 \\
+XGBoost & 5.25 & 8.40 & 0.920 \\
+SVR & 6.20 & 9.55 & 0.896 \\
 \end{longtable}
 
 \subsection{Classification}\label{classification}
@@ -1030,7 +1047,7 @@ Tuning affects the four classifiers unevenly (Table
 model overall, the Support Vector Classifier gains the most of any model
 here, thanks to a wider margin parameter (\(C = 10\) against a default
 of \(C = 1\)) that lets the decision boundary reach further into
-minority-class territory, and Gradient Boosting's tuned macro F1 dips
+minority-class territory and Gradient Boosting's tuned macro F1 dips
 slightly below its untuned value, a difference small enough to chalk up
 to the noise of optimising on cross-validated F1 rather than the
 held-out test set directly.
@@ -1074,7 +1091,7 @@ predicted as Single-story or Multi-story instead.
 \end{figure}
 
 Each row of the matrix corresponds to one true typology (Single-story,
-1.5-story, Multi-story, or Split-level), and each column to the typology
+1.5-story, Multi-story or Split-level), and each column to the typology
 the model predicted; the diagonal cells count correct predictions, while
 off-diagonal cells count misclassifications between specific class
 pairs. The largest diagonal counts fall on Single-story and Multi-story,
@@ -1089,21 +1106,23 @@ structural overlap between these categories.
 
 \subsection{Regression Task}\label{regression-task}
 
-Tree-based ensembles perform strongly here (Random Forest
-\(R^2 = 0.969\), XGBoost \(R^2 = 0.967\)), which says a property's
-physical attributes really do carry a chronological signal, and one that
-machine learning can recover with high accuracy. What's more telling is
-how far behind the linear baselines stay (\(R^2 \approx 0.89\)): roughly
-8 percentage points of variance in construction year simply isn't
-reachable by any linear combination of predictors. That points to
-threshold effects rather than a smooth relationship, which lines up with
-how building practice actually evolved. Materials and design standards
-didn't drift continuously; they shifted in fits and starts, driven by
-regulatory and technological step-changes, and a tree's decision
-boundaries can represent that kind of jump directly.
+Tree-based ensembles perform strongly here (Gradient Boosting
+\(R^2 = 0.911\), Random Forest \(R^2 = 0.906\), XGBoost \(R^2 = 0.901\)
+by default, rising to \(R^2 = 0.920\) for XGBoost after tuning), which
+says a property's physical attributes really do carry a chronological
+signal, and one that machine learning can recover with good accuracy.
+What's more telling is how far behind the linear baselines stay
+(\(R^2 \approx 0.86\)): roughly 5 percentage points of variance in
+construction year simply isn't reachable by any linear combination of
+predictors. That points to threshold effects rather than a smooth
+relationship, which lines up with how building practice actually
+evolved. Materials and design standards didn't drift continuously; they
+shifted in fits and starts, driven by regulatory and technological
+step-changes, and a tree's decision boundaries can represent that kind
+of jump directly.
 
 The single Decision Tree is a useful cautionary case here. Its test-set
-RMSE (8.06 years, \(R^2 = 0.926\)) is clearly worse than all three tree
+RMSE (12.22 years, \(R^2 = 0.830\)) is clearly worse than all three tree
 ensembles, despite being structurally similar to Random Forest. A single
 tree has only one chance to pick the best available split at each node,
 so it is more exposed to whichever predictor looks strongest in the
@@ -1112,21 +1131,21 @@ generalise poorly; bagging (Random Forest) and boosting (Gradient
 Boosting, XGBoost) both average over many such trees and are
 correspondingly more robust to this.
 
-The default SVR falls behind the other non-linear methods (RMSE = 11.08,
-\(R^2 = 0.860\)), which suggests its default radial basis function
+The default SVR falls behind the other non-linear methods (RMSE = 13.09,
+\(R^2 = 0.805\)), which suggests its default radial basis function
 kernel just isn't matched well to this dataset's structure. Tuning
-narrows that gap substantially (RMSE drops to 8.59, Table
+narrows that gap substantially (RMSE drops to 9.55, Table
 \ref{tab:reg-tuned}), so the shortfall looks more like a hyperparameter
 problem than a fundamental mismatch between margin-based methods and
 this task. Even tuned, though, the SVR stays well behind the ensembles,
 a structural disadvantage on this high-dimensional, mixed-type feature
 set that tuning alone doesn't fully close.
 
-The neural network's cross-validation variance (RMSE = 14.15 \(\pm\)
-2.28) sits well above both its own test-set result (8.42) and every
+The neural network's cross-validation variance (RMSE = 14.85 \(\pm\)
+1.99) sits well above both its own test-set result (10.53) and every
 tree-based model's CV variance. That's a sign of fold-dependent
 performance rather than genuine generalisation. With only 2,344 training
-observations against 149 post-encoding features, the default
+observations against 147 post-encoding features, the default
 architecture probably doesn't have the capacity to exploit deep
 interaction effects consistently, and the uneven temporal spread of
 observations across folds doesn't make its job any easier.
@@ -1183,9 +1202,12 @@ mean-decrease-in-impurity importance from both fitted default models
 (Figure \ref{fig:feat-imp}) tells a more specific story than the
 correlation ranking in Section \ref{exploratory-data-analysis} on its
 own would suggest: \texttt{Bsmt\ Qual}, the ordinal basement-quality
-rating, dominates both models (44\% of total importance for Random
-Forest, 58\% for XGBoost), with \texttt{Year\ Remod/Add\ Delta} and
-\texttt{Garage\ Yr\ Blt} a distant second and third for both.
+rating, dominates both models (55\% of total importance for Random
+Forest, 40\% for XGBoost), with the one-hot encoded \texttt{Foundation}
+categories (\texttt{PConc}, \texttt{BrkTil}, \texttt{CBlock}) taking
+over as a distant second, third and fourth for both, now that the two
+excluded temporal fields (\texttt{Year\ Remod/Add\ Delta},
+\texttt{Garage\ Yr\ Blt}) are out of the feature set entirely.
 \texttt{Overall\ Qual} and \texttt{Gr\ Liv\ Area}, despite their visible
 correlation with \texttt{Year\ Built} in the exploratory analysis, do
 not appear among either model's top ten features. This is a useful
@@ -1193,9 +1215,12 @@ illustration of why marginal correlation and model-internal feature
 importance are not interchangeable: \texttt{Bsmt\ Qual} is a categorical
 quality rating that both tree ensembles can split on cleanly, and it
 plausibly proxies changing basement-finishing standards across
-construction eras more directly than raw floor area does. This is a
-predictive association within these two specific models, not a causal
-claim about what determines a house's construction year. If
+construction eras more directly than raw floor area does; foundation
+type follows a similar logic, since poured concrete (\texttt{PConc})
+foundations only became the dominant choice later in the sample window,
+displacing older brick/tile (\texttt{BrkTil}) and block construction.
+This is a predictive association within these two specific models, not a
+causal claim about what determines a house's construction year. If
 understanding what's actually driving a given prediction matters,
 XGBoost paired with SHAP values is the more useful option at the
 instance level.
@@ -1206,15 +1231,16 @@ instance level.
 
 }
 
-\caption{\label{fig:feat-imp}Mean-decrease-in-impurity feature importance for the default Random Forest and XGBoost regressors (top 10 features each). Prefixes indicate the preprocessing group each feature belongs to (ordinal, standardised, normalised, one-hot, or binary encoded).}\label{fig:fig-feat-imp}
+\caption{\label{fig:feat-imp}Mean-decrease-in-impurity feature importance for the default Random Forest and XGBoost regressors (top 10 features each). Prefixes indicate the preprocessing group each feature belongs to (ordinal, standardised, normalised, one-hot or binary encoded).}\label{fig:fig-feat-imp}
 \end{figure}
 
 The linear models, Linear Regression and Ridge, offer full
-coefficient-level interpretability, but it costs roughly 5 RMSE years
-relative to Random Forest. Where interpretability is the binding
-constraint and approximate accuracy is good enough, Ridge Regression
-makes sense. Otherwise, the performance gap is large enough to justify
-going with Random Forest or XGBoost instead.
+coefficient-level interpretability, but it costs roughly 2.5 RMSE years
+relative to the best-performing ensemble (XGBoost, tuned). Where
+interpretability is the binding constraint and approximate accuracy is
+good enough, Ridge Regression makes sense. Otherwise, the performance
+gap is large enough to justify going with Gradient Boosting or XGBoost
+instead.
 
 The classification versions of Gradient Boosting and XGBoost offer the
 same kind of interpretability as their regression counterparts.
@@ -1281,25 +1307,16 @@ indirect temporal signal rather than purely spatial information. Teasing
 the two apart would need a more controlled feature selection procedure,
 or a residualisation approach.
 
-The engineered \texttt{Year\ Remod/Add\ Delta} feature used in the
-regression task is also right-censored by construction: houses built
-close to the end of the observation window (2010) have simply had less
-time to be remodelled than older houses, regardless of their true
-renovation tendency. Part of this feature's predictive weight (Section
-\ref{model-interpretability}) may therefore reflect this censoring
-artefact rather than a genuine behavioural difference between older and
-newer housing stock.
-
 \subsection{Conclusion}\label{conclusion}
 
 Residential properties in the Ames Housing Dataset carry two forms of
 latent architectural information, construction era and structural
-typology, and both turn out to be recoverable with high accuracy. Random
-Forest, using nothing more than its default hyperparameters, gives the
-strongest regression performance (RMSE = 5.18 years, \(R^2 = 0.969\));
-tuned XGBoost gives the strongest classification performance (accuracy =
-91.8\%, macro F1 = 0.837). Tree-based ensembles, bagged (Random Forest)
-or boosted (Gradient Boosting, XGBoost), consistently beat the linear,
+typology, and both turn out to be recoverable with good accuracy.
+XGBoost, after hyperparameter tuning, gives the strongest regression
+performance (RMSE = 8.40 years, \(R^2\) = 0.920); tuned XGBoost also
+gives the strongest classification performance (accuracy = 91.8\%, macro
+F1 = 0.837). Tree-based ensembles, bagged (Random Forest) or boosted
+(Gradient Boosting, XGBoost), consistently beat the linear,
 kernel-based, and instance-based alternatives in both tasks, and
 cross-validation confirms these results hold up rather than being an
 artefact of one lucky train/test split.
@@ -1307,11 +1324,12 @@ artefact of one lucky train/test split.
 Methodologically, three things keep coming up here that apply well
 beyond this dataset: leakage-safe preprocessing pipelines are worth the
 setup cost, evaluation metrics need to account for class imbalance
-rather than default to accuracy, and predictive power always trades off
-against interpretability to some degree. The \texttt{MS\ SubClass} case
-in Section \ref{data-preprocessing} is a concrete illustration of the
-first point: a variable can look like an unremarkable numeric predictor
-and still carry an indirect encoding of the target, and this is only
+rather than default to accuracy and predictive power always trades off
+against interpretability to some degree. The \texttt{MS\ SubClass} and
+\texttt{Garage\ Yr\ Blt} cases in Section \ref{data-preprocessing} are
+concrete illustrations of the first point: a variable can look like an
+unremarkable numeric predictor and still carry an indirect encoding of
+the target, or duplicate it under a different name, and this is only
 caught by checking what a feature actually represents, not just how it
 is typed or scaled. When the accuracy margin is large enough to justify
 it, ensemble methods strike a good balance: strong generalisation paired
@@ -1427,23 +1445,10 @@ SVR / SVC & GridSearchCV & kernel \{linear, rbf\}; C \{0.1,1,10\}; gamma
 
 \caption{\label{fig:clf-cv}Five-fold cross-validation macro F1 for all classification models (mean $\pm$ standard deviation).}\label{fig:fig-clf-cv}
 \end{figure}
-\renewcommand*{\mkbibnamefamily}[1]{\textbf{#1}}
-\renewcommand*{\mkbibnamegiven}[1]{\textbf{#1}}
-\renewcommand*{\mkbibnameprefix}[1]{\textbf{#1}}
-\renewcommand*{\mkbibnamesuffix}[1]{\textbf{#1}}
+
+\begingroup
+\raggedright
 \printbibliography[title=References]
-
-\newpage
-\textbf{Eidesstattliche Versicherung}
-
-\bigskip
-
-Ich versichere an Eides statt durch meine Unterschrift, dass ich die vorstehende Arbeit selbständig und ohne fremde Hilfe angefertigt und alle Stellen, die ich wörtlich oder annähernd wörtlich aus Veröffentlichungen entnommen habe, als solche kenntlich gemacht habe, mich auch keiner anderen als der angegebenen Literatur oder sonstiger Hilfsmittel bedient habe. Die Arbeit hat in dieser oder ähnlicher Form noch keiner anderen Prüfungsbehörde vorgelegen.
-
-\vspace{1cm}
-\rule{0pt}{2\baselineskip} %
-\par\noindent\makebox[2.25in]{\indent Essen, den \hrulefill} \hfill\makebox[2.25in]{\hrulefill}%
-\par\noindent\makebox[2.25in][l]{} \hfill\makebox[2.25in][c]{Rezaul
-Hoque, Sarah Al-Talal}%
+\endgroup
 
 \end{document}

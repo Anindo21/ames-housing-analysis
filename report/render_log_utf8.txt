@@ -1,0 +1,74 @@
+﻿Rscript : 
+At line:1 char:60
++ ... lyContinue; Rscript -e "rmarkdown::render('report.Rmd')" *> render_lo ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+processing file: report.Rmd
+1/49                   
+2/49 [setup]           
+3/49                   
+4/49 [fig-yearbuilt]   
+5/49                   
+6/49 [fig-housestyle]  
+7/49                   
+8/49 [fig-clf-eda]     
+9/49                   
+10/49 [tab-reg-models]  
+11/49                   
+12/49 [tab-clf-models]  
+13/49                   
+14/49 [tab-hp-selected] 
+15/49                   
+16/49 [tab-reg-results] 
+17/49                   
+18/49 [tab-reg-cv]      
+19/49                   
+20/49 [fig-pred-actual] 
+21/49                   
+22/49 [tab-reg-tuned]   
+23/49                   
+24/49 [tab-clf-results] 
+25/49                   
+26/49 [tab-clf-cv]      
+27/49                   
+28/49 [tab-clf-tuned]   
+29/49                   
+30/49 [fig-confusion]   
+31/49                   
+32/49 [fig-feat-imp]    
+33/49                   
+34/49 [fig-clf-feat-imp]
+35/49                   
+36/49 [fig-correlation] 
+37/49                   
+38/49 [fig-scatter]     
+39/49                   
+40/49 [tab-hp-grid]     
+41/49                   
+42/49 [fig-reg-comp]    
+43/49                   
+44/49 [fig-reg-cv]      
+45/49                   
+46/49 [fig-clf-comp]    
+47/49                   
+48/49 [fig-clf-cv]      
+49/49                   
+output file: report.knit.md
+
+"C:/Users/M03974/AppData/Local/Pandoc/pandoc" +RTS -K512m -RTS report.knit.md --to latex --from markdown+autolink_bare_uris+tex_math_single_backslash --output report.tex --lua-filter "C:\Users\M03974\AppData\Local\Programs\R\R-4.6.1\library\rmarkdown\rmarkdown\lua\pagebreak.lua" --lua-filter "C:\Users\M03974\AppData\Local\Programs\R\R-4.6.1\library\rmarkdown\rmarkdown\lua\latex-div.lua" --embed-resources --standalone --template "Resources\template.tex" --number-sections --syntax-highlighting tango --pdf-engine pdflatex --biblatex --extract-media report_files --include-in-header "C:\Users\M03974\AppData\Local\Temp\RtmpOsmv5G\rmarkdown-str871c31ae7580.html" 
+! I can't write on file `report.pdf'.
+(Press Enter to retry, or Control-Z to exit; default file extension is `.pdf')
+Please type another file name for output
+! Emergency stop.
+\Hy@OutlineName ...utline goto name{#2}count#3{#4}
+
+! Emergency stop.
+\Hy@OutlineName ...utline goto name{#2}count#3{#4}
+
+Error: LaTeX failed to compile report.tex. See 
+https://yihui.org/tinytex/r/#debugging for debugging tips. See report.log for 
+more info.
+Execution halted
