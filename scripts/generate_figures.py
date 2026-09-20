@@ -145,8 +145,8 @@ plt.close()
 print("Figure 5 ...")
 mnames = ['Linear Reg.', 'Ridge Reg.', 'Decision Tree', 'Random Forest',
           'Grad. Boosting', 'XGBoost', 'SVR', 'KNN', 'Neural Network']
-rmse_v = [9.77, 9.68, 8.06, 5.18, 6.26, 5.36, 11.08, 8.44, 8.42]
-r2_v   = [0.891, 0.893, 0.926, 0.969, 0.955, 0.967, 0.860, 0.919, 0.919]
+rmse_v = [10.99, 10.95, 12.22, 9.08, 8.83, 9.32, 13.09, 9.56, 10.53]
+r2_v   = [0.862, 0.863, 0.830, 0.906, 0.911, 0.901, 0.805, 0.896, 0.874]
 
 rank_r = np.argsort(rmse_v)
 cmap_r = {}
@@ -178,8 +178,8 @@ plt.close()
 # CV is computed on the training fold only (X_train/y_train in regression.ipynb),
 # so these values are independent of the held-out test-set scores above.
 print("Figure 6 ...")
-cv_r  = [10.25, 10.14, 8.73, 5.64, 6.21, 5.95, 12.94, 9.03, 14.15]
-cv_rs = [0.58, 0.59, 0.97, 0.36, 0.17, 0.26, 1.01, 0.84, 2.28]
+cv_r  = [11.31, 11.22, 13.00, 9.65, 9.73, 9.58, 15.43, 10.81, 14.85]
+cv_rs = [0.65, 0.69, 0.78, 0.52, 0.61, 0.97, 0.99, 0.97, 1.99]
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.barh(range(len(mnames)), cv_r, xerr=cv_rs, color='steelblue', edgecolor='black',
         height=0.6, capsize=4, alpha=0.85)

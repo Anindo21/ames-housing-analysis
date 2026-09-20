@@ -9,13 +9,13 @@ This project leverages the classic **Ames Housing Dataset** to explore residenti
 ## 🚀 Project Overview
 
 ### 1. Regression Focus: Predicting the Age of a House
-* **Research Question:** How accurately can a machine learning model predict the original construction year of a residential property based solely on its current structural materials, layout configurations, and utility quality metrics?
+* **Research Question:** How accurately can a machine learning model predict a residential property's original construction year based solely on its current structural materials, layout configuration, and quality ratings, with no temporal metadata and no market data in sight?
 * **The Angle:** Housing designs evolve over generations. Older homes typically feature segmented, closed-off layouts optimized for localized heating, while modern homes favor sweeping, open-concept configurations. This model attempts to map these physical, historical design shifts directly to a chronological timeline.
 * **Practical Benefit:** * **Data Integrity:** Serves as an automated data-cleaning tool for municipal planners or real estate platforms to accurately fill in missing or corrupted historical city records.
   * **Value Detection:** Identifies "hidden gems"—older structures whose modernized interior metrics cause the model to flag them as brand-new builds.
 
 ### 2. Multi-Class Classification: Automated Architectural Typology Inference
-* **Research Question:** Can machine learning algorithms accurately infer a residential property's architectural typology from its measurable spatial footprint, structural scale metrics, and internal layout configurations alone?
+* **Research Question:** Can machine learning algorithms accurately infer a residential property's architectural typology from its measurable spatial footprint, structural scale metrics, and internal layout configuration alone, and which physical attributes serve as the most discriminative geometric boundaries between single-story, multi-story, one-and-a-half story, and split-level residential typologies?
 * **The Angle:** By removing price and artificial valuation tiers, this task treats machine learning as an automated architectural classifier. The objective is to discover the exact geometric thresholds (floor square footage, room distribution, story configurations) that cleanly separate single-story, multi-story, 1.5-story, and split-level typologies.
 
 ---
