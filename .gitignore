@@ -237,3 +237,15 @@ __marimo__/
 # -- Project-specific generated files ------------------------------------------
 data/processed/
 figures/
+
+# -- Local editor and assistant settings ---------------------------------------
+.vscode/
+.claude/
+
+# -- Duplicate and intermediate report outputs ---------------------------------
+# The submitted report is report/Statistical_Learning_Group7_Report.pdf
+/report.Rmd
+/report.pdf
+report/report.pdf
+report/report.tex
+report/render_log*.txt
